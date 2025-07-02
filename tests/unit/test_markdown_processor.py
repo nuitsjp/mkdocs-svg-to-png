@@ -250,3 +250,116 @@ graph B
         # 両方のブロックが呼び出されることを確認
         block1.get_image_markdown.assert_called_once()
         block2.get_image_markdown.assert_called_once()
+
+    def test_extract_svg_file_references(self, basic_config):
+        """SVGファイル参照の抽出テスト"""
+        processor = MarkdownProcessor(basic_config)
+
+        markdown = """# Test
+
+![diagram](images/test.svg)
+
+Some text.
+
+![Another diagram](../assets/diagram.svg)
+"""
+        # SVGファイル参照を抽出するメソッドをテスト（これから実装）
+        svg_blocks = processor.extract_svg_blocks(markdown)
+        assert len(svg_blocks) == 2
+        assert svg_blocks[0].file_path == "images/test.svg"
+        assert svg_blocks[1].file_path == "../assets/diagram.svg"
+
+    def test_extract_inline_svg_code_blocks(self, basic_config):
+        """インラインSVGコードブロックの抽出テスト"""
+        processor = MarkdownProcessor(basic_config)
+
+        markdown = """# Test
+
+```svg
+<svg width="100" height="100">
+  <circle cx="50" cy="50" r="40" fill="red" />
+</svg>
+```
+
+Some text.
+
+```svg {width: 200, height: 150}
+<svg viewBox="0 0 100 100">
+  <rect x="10" y="10" width="80" height="80" fill="blue" />
+</svg>
+```
+"""
+        # インラインSVGブロックを抽出するメソッドをテスト（これから実装）
+        svg_blocks = processor.extract_svg_blocks(markdown)
+        assert len(svg_blocks) == 2
+        assert "<circle" in svg_blocks[0].code
+        assert "<rect" in svg_blocks[1].code
+        assert svg_blocks[1].attributes.get("width") == "200"
+
+    def test_extract_mixed_svg_content(self, basic_config):
+        """SVGファイル参照とインラインSVGの混在テスト"""
+        processor = MarkdownProcessor(basic_config)
+
+        markdown = """# Test
+
+![file ref](diagram.svg)
+
+```svg
+<svg><circle cx="50" cy="50" r="20" /></svg>
+```
+
+![another file](assets/chart.svg)
+"""
+        svg_blocks = processor.extract_svg_blocks(markdown)
+        assert len(svg_blocks) == 3
+        # ファイル参照とインラインコードが正しく区別される
+        assert any(block.file_path == "diagram.svg" for block in svg_blocks)
+        assert any("<circle" in block.code for block in svg_blocks)
+        assert any(block.file_path == "assets/chart.svg" for block in svg_blocks)
+
+    def test_resolve_svg_file_paths_absolute(self, basic_config):
+        """絶対パスSVGファイルの解決テスト"""
+        processor = MarkdownProcessor(basic_config)
+
+        svg_blocks = [
+            processor._create_svg_block("", "/home/user/docs/diagram.svg"),
+            processor._create_svg_block("", "./assets/chart.svg"),
+            processor._create_svg_block("", "../images/flow.svg"),
+        ]
+        base_path = "/home/user/docs"
+
+        resolved_paths = processor.resolve_svg_file_paths(svg_blocks, base_path)
+
+        assert resolved_paths[0] == "/home/user/docs/diagram.svg"
+        assert resolved_paths[1] == "/home/user/docs/assets/chart.svg"
+        assert resolved_paths[2] == "/home/user/images/flow.svg"
+
+    def test_resolve_svg_file_paths_relative(self, basic_config):
+        """相対パスSVGファイルの解決テスト"""
+        processor = MarkdownProcessor(basic_config)
+
+        svg_blocks = [
+            processor._create_svg_block("", "images/test.svg"),
+            processor._create_svg_block("", "subfolder/diagram.svg"),
+        ]
+        base_path = "/home/user/project/docs"
+
+        resolved_paths = processor.resolve_svg_file_paths(svg_blocks, base_path)
+
+        assert resolved_paths[0] == "/home/user/project/docs/images/test.svg"
+        assert resolved_paths[1] == "/home/user/project/docs/subfolder/diagram.svg"
+
+    def test_resolve_svg_file_paths_skip_inline(self, basic_config):
+        """インラインSVGはパス解決をスキップするテスト"""
+        processor = MarkdownProcessor(basic_config)
+
+        svg_blocks = [
+            processor._create_svg_block("<svg><circle /></svg>", ""),  # インライン
+            processor._create_svg_block("", "diagram.svg"),  # ファイル参照
+        ]
+        base_path = "/home/user/docs"
+
+        resolved_paths = processor.resolve_svg_file_paths(svg_blocks, base_path)
+
+        assert resolved_paths[0] == ""  # インラインはパス解決不要
+        assert resolved_paths[1] == "/home/user/docs/diagram.svg"

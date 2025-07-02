@@ -149,7 +149,7 @@ class TestSetupPluginLogging:
 
     def test_setup_with_env_variable(self) -> None:
         """Test setup with environment variable override."""
-        with patch.dict(os.environ, {"MKDOCS_MERMAID_LOG_LEVEL": "DEBUG"}):
+        with patch.dict(os.environ, {"MKDOCS_SVG_TO_PNG_LOG_LEVEL": "DEBUG"}):
             setup_plugin_logging(level="INFO", force=True)
 
         logger = logging.getLogger("mkdocs_svg_to_png")
@@ -157,7 +157,7 @@ class TestSetupPluginLogging:
 
     def test_setup_with_invalid_env_variable(self) -> None:
         """Test setup with invalid environment variable."""
-        with patch.dict(os.environ, {"MKDOCS_MERMAID_LOG_LEVEL": "INVALID"}):
+        with patch.dict(os.environ, {"MKDOCS_SVG_TO_PNG_LOG_LEVEL": "INVALID"}):
             setup_plugin_logging(level="INFO", force=True)
 
         logger = logging.getLogger("mkdocs_svg_to_png")

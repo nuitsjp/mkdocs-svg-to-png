@@ -74,11 +74,11 @@ def setup_plugin_logging(
     log_file: str | Path | None = None,
     force: bool = False,
 ) -> None:
-    env_level = os.environ.get("MKDOCS_MERMAID_LOG_LEVEL", "").upper()
+    env_level = os.environ.get("MKDOCS_SVG_TO_PNG_LOG_LEVEL", "").upper()
     if env_level in ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]:
         level = env_level
 
-    logger = logging.getLogger("mkdocs_mermaid_to_image")
+    logger = logging.getLogger("mkdocs_svg_to_png")
 
     if logger.handlers and not force:
         return

@@ -29,6 +29,34 @@ def _calculate_relative_path_prefix(page_file: str) -> str:
         return "../" * depth
 
 
+class SvgBlock:
+    def __init__(
+        self,
+        code: str = "",
+        file_path: str = "",
+        start_pos: int = 0,
+        end_pos: int = 0,
+        attributes: dict[str, Any] | None = None,
+    ):
+        self.code = code.strip()
+        self.file_path = file_path
+        self.start_pos = start_pos
+        self.end_pos = end_pos
+        self.attributes = attributes or {}
+
+    def __repr__(self) -> str:
+        if self.file_path:
+            return (
+                f"SvgBlock(file_path='{self.file_path}', "
+                f"start={self.start_pos}, end={self.end_pos})"
+            )
+        else:
+            return (
+                f"SvgBlock(code='{self.code[:50]}...', "
+                f"start={self.start_pos}, end={self.end_pos})"
+            )
+
+
 class MermaidBlock:
     def __init__(
         self,
