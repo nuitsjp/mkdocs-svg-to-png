@@ -1,5 +1,6 @@
 """Test minimal configuration functionality."""
 
+from mkdocs_svg_to_png.config import SvgConfigManager
 from mkdocs_svg_to_png.plugin import SvgToPngPlugin
 
 
@@ -16,9 +17,6 @@ class TestMinimalConfig:
             if hasattr(config_option, "default"):
                 # デフォルト値が設定されている
                 assert config_option.default is not None or config_name in [
-                    "mermaid_config",
-                    "css_file",
-                    "puppeteer_config",
                     "temp_dir",
                     "enabled_if_env",
                 ], f"{config_name} should have a default value"
@@ -51,18 +49,16 @@ class TestMinimalConfig:
         essential_with_defaults = [
             "enabled",  # プラグインの有効化
             "output_dir",  # 画像出力先
-            "image_format",  # 画像形式
-            "mmdc_path",  # Mermaid CLIパス
-            "theme",  # テーマ
+            "dpi",  # DPI
+            "output_format",  # 出力形式
+            "quality",  # 品質
             "background_color",  # 背景色
-            "width",  # 画像幅
-            "height",  # 画像高さ
-            "scale",  # 拡大率
             "cache_enabled",  # キャッシュ有効化
             "cache_dir",  # キャッシュディレクトリ
             "preserve_original",  # 元コード保持
             "error_on_fail",  # エラー時動作
             "log_level",  # ログレベル
+            "cleanup_generated_images",  # 生成画像のクリーンアップ
         ]
 
         for essential in essential_with_defaults:
@@ -76,10 +72,8 @@ class TestMinimalConfig:
 
         # オプショナル設定項目
         optional_settings = [
-            "mermaid_config",  # Mermaid設定ファイル
-            "css_file",  # カスタムCSS
-            "puppeteer_config",  # Puppeteer設定
             "temp_dir",  # 一時ディレクトリ
+            "enabled_if_env",  # 環境変数による有効化
         ]
 
         for config_name, config_option in plugin.config_scheme:
@@ -95,17 +89,13 @@ class TestMinimalConfig:
 
     def test_最小設定での設定検証通過(self):
         """最小設定で設定検証が通過することを確認。"""
-        from mkdocs_svg_to_png.config import ConfigManager
-
         # 最小設定（必須項目のみデフォルト値）
         minimal_config = {
-            "width": 800,
-            "height": 600,
-            "scale": 1.0,
-            "css_file": None,
-            "puppeteer_config": None,
+            "dpi": 300,
+            "output_format": "png",
+            "quality": 95,
         }
 
         # 設定検証が成功することを確認
-        result = ConfigManager.validate_config(minimal_config)
-        assert result is True
+        result = SvgConfigManager().validate(minimal_config)
+        assert result == minimal_config

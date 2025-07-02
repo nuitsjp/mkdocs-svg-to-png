@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Literal, TypedDict
+from typing import TYPE_CHECKING, Any, Literal, TypedDict
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -10,32 +10,33 @@ ValidationStatus = Literal["valid", "invalid", "skipped"]
 ProcessingStatus = Literal["processing", "completed", "failed"]
 
 ImageFormat = Literal["png", "svg"]
-MermaidTheme = Literal["default", "dark", "forest", "neutral"]
 
 
 class PluginConfigDict(TypedDict, total=False):
-    image_format: ImageFormat
-    theme: MermaidTheme
-    cache_enabled: bool
     output_dir: str
-    image_width: int
-    image_height: int
+    image_format: ImageFormat
+    dpi: int
+    quality: int
     background_color: str
-    puppeteer_config: str
-    css_file: str
-    scale: float
-    timeout: int
+    cache_enabled: bool
+    cache_dir: str
+    preserve_original: bool
+    error_on_fail: bool
+    log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"]
+    cleanup_generated_images: bool
+    enabled_if_env: str
+    temp_dir: str
 
 
-class MermaidBlockDict(TypedDict):
+class SvgBlockDict(TypedDict):
     code: str
-    language: str
-    start_line: int
-    end_line: int
-    block_index: int
+    file_path: str
+    start_pos: int
+    end_pos: int
+    attributes: dict[str, Any]
 
 
-class MermaidBlockWithMetadata(MermaidBlockDict):
+class SvgBlockWithMetadata(SvgBlockDict):
     image_filename: str
     image_path: str
     processed: bool
@@ -44,7 +45,7 @@ class MermaidBlockWithMetadata(MermaidBlockDict):
 
 class ProcessingResultDict(TypedDict):
     status: PluginStatus
-    processed_blocks: list[MermaidBlockWithMetadata]
+    processed_blocks: list[SvgBlockWithMetadata]
     errors: list[str]
     warnings: list[str]
     processing_time_ms: float

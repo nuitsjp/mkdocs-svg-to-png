@@ -2,53 +2,15 @@ import re
 from pathlib import Path
 from typing import Any
 
-from .exceptions import MermaidParsingError
+from .exceptions import SvgParsingError
 from .logging_config import get_logger
-from .mermaid_block import MermaidBlock, SvgBlock
+from .svg_block import SvgBlock
 
 
 class MarkdownProcessor:
     def __init__(self, config: dict[str, Any]) -> None:
         self.config = config
         self.logger = get_logger(__name__)
-
-    def extract_mermaid_blocks(self, markdown_content: str) -> list[MermaidBlock]:
-        blocks = []
-
-        basic_pattern = r"```mermaid\s*\n(.*?)\n```"
-
-        attr_pattern = r"```mermaid\s*\{([^}]*)\}\s*\n(.*?)\n```"
-
-        for match in re.finditer(attr_pattern, markdown_content, re.DOTALL):
-            attr_str = match.group(1).strip()
-            code = match.group(2).strip()
-
-            attributes = self._parse_attributes(attr_str)
-
-            block = MermaidBlock(
-                code=code,
-                start_pos=match.start(),
-                end_pos=match.end(),
-                attributes=attributes,
-            )
-            blocks.append(block)
-
-        for match in re.finditer(basic_pattern, markdown_content, re.DOTALL):
-            overlaps = any(
-                match.start() >= block.start_pos and match.end() <= block.end_pos
-                for block in blocks
-            )
-            if not overlaps:
-                code = match.group(1).strip()
-                block = MermaidBlock(
-                    code=code, start_pos=match.start(), end_pos=match.end()
-                )
-                blocks.append(block)
-
-        blocks.sort(key=lambda x: x.start_pos)
-
-        self.logger.info(f"Found {len(blocks)} Mermaid blocks")
-        return blocks
 
     def _parse_attributes(self, attr_str: str) -> dict[str, Any]:
         attributes = {}
@@ -64,16 +26,16 @@ class MarkdownProcessor:
     def replace_blocks_with_images(
         self,
         markdown_content: str,
-        blocks: list[MermaidBlock],
+        blocks: list[SvgBlock],
         image_paths: list[str],
         page_file: str,
         page_url: str = "",
     ) -> str:
         if len(blocks) != len(image_paths):
-            raise MermaidParsingError(
+            raise SvgParsingError(
                 "Number of blocks and image paths must match",
                 source_file=page_file,
-                mermaid_code=f"Expected {len(blocks)} images, got {len(image_paths)}",
+                svg_content=f"Expected {len(blocks)} images, got {len(image_paths)}",
             )
 
         sorted_blocks = sorted(
@@ -101,7 +63,7 @@ class MarkdownProcessor:
         blocks = []
 
         # SVGファイル参照パターン: ![alt](path.svg)
-        file_pattern = r"!\[[^\]]*\]\(([^)]+\.svg)\)"
+        file_pattern = r"!\[[^\]]*\]\(((?!https?://)[^)]+\.svg)\)"
 
         # インラインSVGコードブロックパターン（属性付き）
         attr_pattern = r"```svg\s*\{([^}]*)\}\s*\n(.*?)\n```"

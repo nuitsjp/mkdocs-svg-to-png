@@ -1,19 +1,19 @@
 from pathlib import Path
 from typing import Any, Union
 
-from .exceptions import MermaidFileError, MermaidImageError, MermaidPreprocessorError
-from .image_generator import MermaidImageGenerator
+from .exceptions import SvgConversionError, SvgFileError, SvgImageError
 from .logging_config import get_logger
 from .markdown_processor import MarkdownProcessor
+from .svg_converter import SvgToPngConverter
 
 
-class MermaidProcessor:
+class SvgProcessor:
     def __init__(self, config: dict[str, Any]) -> None:
         self.config = config
         self.logger = get_logger(__name__)
 
         self.markdown_processor = MarkdownProcessor(config)
-        self.image_generator = MermaidImageGenerator(config)
+        self.svg_converter = SvgToPngConverter(config)
 
     def process_page(
         self,
@@ -22,7 +22,7 @@ class MermaidProcessor:
         output_dir: Union[str, Path],
         page_url: str = "",
     ) -> tuple[str, list[str]]:
-        blocks = self.markdown_processor.extract_mermaid_blocks(markdown_content)
+        blocks = self.markdown_processor.extract_svg_blocks(markdown_content)
 
         if not blocks:
             return markdown_content, []
@@ -33,12 +33,12 @@ class MermaidProcessor:
         for i, block in enumerate(blocks):
             try:
                 image_filename = block.get_filename(
-                    page_file, i, self.config["image_format"]
+                    page_file, i, self.config["output_format"]
                 )
                 image_path = Path(output_dir) / image_filename
 
-                success = block.generate_image(
-                    str(image_path), self.image_generator, self.config
+                success = block.generate_png(
+                    str(image_path), self.svg_converter, self.config
                 )
 
                 if success:
@@ -46,26 +46,25 @@ class MermaidProcessor:
                     successful_blocks.append(block)
                 elif not self.config["error_on_fail"]:
                     self.logger.warning(
-                        "Image generation failed, keeping original Mermaid block",
+                        "PNG generation failed, keeping original SVG block",
                         extra={
                             "context": {
                                 "page_file": page_file,
                                 "block_index": i,
                                 "image_path": str(image_path),
-                                "suggestion": "Check Mermaid syntax and CLI "
-                                "configuration",
+                                "suggestion": "Check SVG content and CairoSVG installation",  # noqa: E501
                             }
                         },
                     )
                     continue
                 else:
-                    raise MermaidImageError(
-                        f"Image generation failed for block {i} in {page_file}",
+                    raise SvgImageError(
+                        f"PNG generation failed for block {i} in {page_file}",
                         image_path=str(image_path),
-                        suggestion="Check Mermaid diagram syntax and CLI availability",
+                        suggestion="Check SVG content and CairoSVG installation",
                     )
 
-            except MermaidPreprocessorError:
+            except SvgConversionError:
                 # カスタム例外はそのまま再発生
                 raise
             except (FileNotFoundError, OSError, PermissionError) as e:
@@ -74,7 +73,7 @@ class MermaidProcessor:
                 )
                 self.logger.error(error_msg)
                 if self.config["error_on_fail"]:
-                    raise MermaidFileError(
+                    raise SvgFileError(
                         error_msg,
                         file_path=str(image_path),
                         operation="image_generation",
@@ -88,7 +87,7 @@ class MermaidProcessor:
                 )
                 self.logger.error(error_msg)
                 if self.config["error_on_fail"]:
-                    raise MermaidPreprocessorError(error_msg) from e
+                    raise SvgConversionError(error_msg) from e
                 continue
 
         if successful_blocks:

@@ -6,21 +6,21 @@
 
 ```yaml
 plugins:
-  - mermaid-to-image:
+  - svg-to-png:
       enabled: true              # デフォルト: true
       enabled_if_env: "ENABLE_PDF_EXPORT"  # 環境変数による制御（オプション）
       output_dir: "assets/images" # デフォルト: "assets/images"
-      image_format: "svg"        # "png" または "svg" (デフォルト: "svg")
-      theme: "default"           # "default", "dark", "forest", "neutral"
-      width: 800                 # デフォルト: 800
-      height: 600                # デフォルト: 600
-      scale: 1.0                 # デフォルト: 1.0
-      background_color: "white"  # デフォルト: "white"
+      image_format: "png"        # 現在は "png" のみサポート (デフォルト: "png")
+      dpi: 300                   # デフォルト: 300
+      quality: 95                # デフォルト: 95
+      background_color: "transparent" # デフォルト: "transparent"
       cache_enabled: true        # デフォルト: true
-      cache_dir: ".mermaid_cache" # デフォルト: ".mermaid_cache"
+      cache_dir: ".svg_cache"    # デフォルト: ".svg_cache"
       preserve_original: false   # デフォルト: false
       error_on_fail: false       # デフォルト: false
       log_level: "INFO"          # "DEBUG", "INFO", "WARNING", "ERROR"
+      cleanup_generated_images: false # デフォルト: false
+      temp_dir: null             # デフォルト: null
 ```
 
 ### 主要設定項目
@@ -28,39 +28,30 @@ plugins:
 - **enabled**: プラグインの有効/無効
 - **enabled_if_env**: 環境変数による条件付き有効化
 - **output_dir**: 生成画像の保存ディレクトリ
-- **image_format**: 出力形式（PNG/SVG）
-- **theme**: ダイアグラムテーマ
-- **width/height**: 画像サイズ（px）
-- **scale**: 画像の拡大率
+- **image_format**: 出力形式（現在PNGのみサポート）
+- **dpi**: SVGからPNGへの変換時のDPI
+- **quality**: PNG画像の品質（0-100）
+- **background_color**: 生成画像の背景色
 - **cache_enabled**: キャッシュ機能の有効/無効
-- **preserve_original**: 元のMermaidコードを保持するか
+- **cache_dir**: キャッシュディレクトリ
+- **preserve_original**: 元のSVGコード/参照を保持するか
 - **error_on_fail**: エラー時にビルドを停止するか
-
-### 高度な設定
-
-```yaml
-plugins:
-  - mermaid-to-image:
-      mmdc_path: "mmdc"                    # mermaid-cliコマンドパス
-      mermaid_config: "path/to/config.json" # Mermaid設定ファイル
-      css_file: "path/to/custom.css"       # カスタムCSSファイル
-      puppeteer_config: "path/to/config.json" # Puppeteer設定ファイル
-      temp_dir: "/tmp/mermaid"             # 一時ディレクトリ
-```
+- **log_level**: プラグインのログレベル
+- **cleanup_generated_images**: ビルド後に生成画像をクリーンアップするか
+- **temp_dir**: 一時ファイルの保存ディレクトリ
 
 ## PDF出力との組み合わせ
 
 ### 環境変数による条件付き画像化
 
-PDF生成時のみMermaidダイアグラムを画像化したい場合は、`enabled_if_env`オプションを使用します：
+PDF生成時のみSVGを画像化したい場合は、`enabled_if_env`オプションを使用します：
 
 ```yaml
 plugins:
   - search
-  - mermaid-to-image:
+  - svg-to-png:
       enabled_if_env: ENABLE_PDF_EXPORT
       image_format: png
-      theme: default
   - to-pdf:
       cover_subtitle: 'Project Documentation'
       output_path: docs.pdf
@@ -68,13 +59,13 @@ plugins:
 
 ### 使用方法
 
-**通常のHTMLビルド**（Mermaidは動的レンダリング）：
+**通常のHTMLビルド**（SVGは動的レンダリングまたは元のSVGのまま）：
 ```bash
 mkdocs build
 mkdocs serve
 ```
 
-**PDF生成用ビルド**（Mermaidは静的画像化）：
+**PDF生成用ビルド**（SVGは静的画像化）：
 ```bash
 ENABLE_PDF_EXPORT=1 mkdocs build
 ```
@@ -124,19 +115,33 @@ mkdocs build
 ENABLE_PDF_EXPORT=1 mkdocs build
 ```
 
-## Mermaidダイアグラムの記述
+## SVGの記述
 
 ### 基本的な記述方法
 
-```mermaid
-graph TD
-    A[開始] --> B[処理]
-    B --> C{判定}
-    C -->|Yes| D[アクション1]
-    C -->|No| E[アクション2]
-    D --> F[終了]
-    E --> F
+Markdownファイル内でSVGコードブロックを直接記述できます。
+
+````markdown
+```svg
+<svg width="100" height="100">
+  <circle cx="50" cy="50" r="40" stroke="black" stroke-width="3" fill="red" />
+</svg>
 ```
+````
+
+
+
+### 属性の指定
+
+SVGコードブロックには、追加の属性を指定できます。これらの属性は、変換時のオプションとして利用されます。
+
+````markdown
+```svg {dpi: 150, background_color: "blue"}
+<svg width="200" height="200">
+  <rect x="10" y="10" width="180" height="180" fill="green" />
+</svg>
+```
+````
 
 ## ビルドと実行
 
@@ -161,7 +166,7 @@ LOG_LEVEL=DEBUG mkdocs build
 
 ## 生成される成果物
 
-- **変換前**: Mermaidコードブロック
+- **変換前**: SVGコードブロックまたはSVGファイル参照
 - **変換後**: 画像タグ（`<img>`）
 - **生成画像**: 設定した`output_dir`に保存
 - **キャッシュ**: 設定した`cache_dir`に保存（再利用）
@@ -181,14 +186,14 @@ ls site/[your_output_dir]/
 ### キャッシュ活用
 
 - `cache_enabled: true`（推奨）
-- 同じダイアグラムの再生成を回避
+- 同じSVGの再生成を回避
 - ビルド時間を大幅短縮
 
-### 並列処理対応
+### 一時ディレクトリの指定
 
 ```yaml
 plugins:
-  - mermaid-to-image:
-      # 大量のダイアグラムがある場合は一時ディレクトリを分離
-      temp_dir: "/tmp/mermaid_build"
+  - svg-to-png:
+      # 大量のSVGがある場合は一時ディレクトリを分離
+      temp_dir: "/tmp/svg_build"
 ```

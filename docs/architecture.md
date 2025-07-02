@@ -2,21 +2,21 @@
 
 ## 概要
 
-MkDocs Mermaid to Image Pluginは、MkDocsプロジェクト内のMermaid図をビルド時に静的画像（PNG/SVG）に変換するプラグインです。Mermaid CLIを利用してMarkdownファイル内のMermaidコードブロックを画像化し、Markdownの内容を画像参照タグに置き換えます。これにより、PDF出力やオフライン環境での閲覧に対応します。
+MkDocs SVG to PNG Pluginは、MkDocsプロジェクト内のSVGファイル参照やSVGコードブロックをビルド時に静的画像（PNG）に変換するプラグインです。CairoSVGを利用してMarkdownファイル内のSVGコンテンツを画像化し、Markdownの内容を画像参照タグに置き換えます。これにより、PDF出力やオフライン環境での閲覧に対応します。
 
 ## プロジェクト構造
 
 ```
-mkdocs-mermaid-to-image/
+mkdocs-svg-to-png/
 └── src/
-    └── mkdocs_mermaid_to_image/
+    └── mkdocs_svg_to_png/
         ├── __init__.py             # パッケージ初期化・バージョン情報
-        ├── plugin.py               # MkDocsプラグインメインクラス (MermaidToImagePlugin)
-        ├── processor.py            # ページ処理の統括 (MermaidProcessor)
+        ├── plugin.py               # MkDocsプラグインメインクラス (SvgToPngPlugin)
+        ├── processor.py            # ページ処理の統括 (SvgProcessor)
         ├── markdown_processor.py   # Markdown解析 (MarkdownProcessor)
-        ├── image_generator.py      # 画像生成 (MermaidImageGenerator)
-        ├── mermaid_block.py        # Mermaidブロック表現 (MermaidBlock)
-        ├── config.py               # 設定スキーマ (MermaidPluginConfig, ConfigManager)
+        ├── svg_converter.py        # SVG変換 (SvgToPngConverter)
+        ├── svg_block.py            # SVGブロック表現 (SvgBlock)
+        ├── config.py               # 設定スキーマ (SvgConfigManager)
         ├── types.py                # 型定義 (TypedDictなど)
         ├── exceptions.py           # カスタム例外クラス
         ├── logging_config.py       # ロギング設定・構造化フォーマッタ
@@ -37,12 +37,12 @@ graph TD
 
     subgraph "Processing Logic"
         B --> G[markdown_processor.py]
-        B --> H[image_generator.py]
+        B --> H[svg_converter.py]
         B --> E
     end
 
     subgraph "Data & Helpers"
-        G --> I[mermaid_block.py]
+        G --> I[svg_block.py]
         G --> E
         H --> D
         H --> E
@@ -51,11 +51,11 @@ graph TD
 
     subgraph "External Dependencies"
         MkDocs[MkDocs]
-        MermaidCLI[Mermaid CLI]
+        CairoSVG[CairoSVG]
     end
 
     A --|> MkDocs
-    H --> MermaidCLI
+    H --> CairoSVG
 
     style A fill:#e1f5fe,stroke:#333,stroke-width:2px
     style B fill:#e8f5e8,stroke:#333,stroke-width:2px
@@ -78,9 +78,9 @@ classDiagram
         <<interface>>
     }
 
-    class MermaidToImagePlugin {
-        +MermaidPluginConfig config
-        +MermaidProcessor processor
+    class SvgToPngPlugin {
+        +SvgConfigManager config
+        +SvgProcessor processor
         +Logger logger
         +list~str~ generated_images
         +Files files
@@ -92,73 +92,67 @@ classDiagram
         +on_post_build(config)
         +on_serve(server, config, builder)
         -_should_be_enabled(config) bool
-        -_process_mermaid_diagrams(markdown, page, config)
+        -_process_svg_diagrams(markdown, page, config)
         -_register_generated_images_to_files(image_paths, docs_dir, config)
     }
-    MermaidToImagePlugin --|> BasePlugin
+    SvgToPngPlugin --|> BasePlugin
 
-    class MermaidProcessor {
+    class SvgProcessor {
         +dict config
         +Logger logger
         +MarkdownProcessor markdown_processor
-        +MermaidImageGenerator image_generator
+        +SvgToPngConverter svg_converter
         +process_page(page_file, markdown, output_dir, page_url) tuple
     }
 
     class MarkdownProcessor {
         +dict config
         +Logger logger
-        +extract_mermaid_blocks(markdown) List~MermaidBlock~
+        +extract_svg_blocks(markdown) List~SvgBlock~
         +replace_blocks_with_images(markdown, blocks, paths, page_file, page_url) str
         -_parse_attributes(attr_str) dict
     }
 
-    class MermaidImageGenerator {
+    class SvgToPngConverter {
         +dict config
         +Logger logger
-        +generate(code, output_path, config) bool
-        -_build_mmdc_command(input_file, output_path, config) list
-        -_validate_dependencies()
+        +convert_svg_content(svg_content, output_path) bool
+        +convert_svg_file(svg_file_path, output_path) bool
     }
 
-    class MermaidBlock {
+    class SvgBlock {
         +str code
+        +str file_path
         +dict attributes
         +int start_pos
         +int end_pos
-        +generate_image(output_path, generator, config) bool
+        +generate_png(output_path, converter, config) bool
         +get_filename(page_file, index, format) str
         +get_image_markdown(image_path, page_file, preserve_original, page_url) str
     }
 
-    class ConfigManager {
-        <<static>>
-        +get_config_scheme() tuple
-        +validate_config(config) bool
-    }
+    class SvgPreprocessorError {<<exception>>}
+    class SvgConfigError {<<exception>>}
+    class SvgConversionError {<<exception>>}
+    class SvgFileError {<<exception>>}
+    class SvgParsingError {<<exception>>}
+    class SvgValidationError {<<exception>>}
+    class SvgImageError {<<exception>>}
 
-    class MermaidPreprocessorError {<<exception>>}
-    class MermaidCLIError {<<exception>>}
-    class MermaidConfigError {<<exception>>}
-    class MermaidParsingError {<<exception>>}
-    class MermaidFileError {<<exception>>}
-    class MermaidValidationError {<<exception>>}
-    class MermaidImageError {<<exception>>}
+    SvgConfigError --|> SvgPreprocessorError
+    SvgConversionError --|> SvgPreprocessorError
+    SvgFileError --|> SvgPreprocessorError
+    SvgParsingError --|> SvgPreprocessorError
+    SvgValidationError --|> SvgPreprocessorError
+    SvgImageError --|> SvgPreprocessorError
 
-    MermaidCLIError --|> MermaidPreprocessorError
-    MermaidConfigError --|> MermaidPreprocessorError
-    MermaidParsingError --|> MermaidPreprocessorError
-    MermaidFileError --|> MermaidPreprocessorError
-    MermaidValidationError --|> MermaidPreprocessorError
-    MermaidImageError --|> MermaidPreprocessorError
-
-    MermaidToImagePlugin o-- MermaidProcessor
-    MermaidToImagePlugin ..> ConfigManager
-    MermaidProcessor o-- MarkdownProcessor
-    MermaidProcessor o-- MermaidImageGenerator
-    MarkdownProcessor --> MermaidBlock : creates
-    MermaidBlock --> MermaidImageGenerator : uses
-    MermaidImageGenerator --> MermaidCLIError : throws
+    SvgToPngPlugin o-- SvgProcessor
+    SvgToPngPlugin ..> SvgConfigManager
+    SvgProcessor o-- MarkdownProcessor
+    SvgProcessor o-- SvgToPngConverter
+    MarkdownProcessor --> SvgBlock : creates
+    SvgBlock --> SvgToPngConverter : uses
+    SvgToPngConverter --> SvgConversionError : throws
 ```
 
 ## プラグイン処理フロー
@@ -168,17 +162,17 @@ classDiagram
 ```mermaid
 sequenceDiagram
     participant MkDocs
-    participant Plugin as MermaidToImagePlugin
-    participant CfgMgr as ConfigManager
-    participant Proc as MermaidProcessor
+    participant Plugin as SvgToPngPlugin
+    participant CfgMgr as SvgConfigManager
+    participant Proc as SvgProcessor
 
     MkDocs->>Plugin: on_config(config)
 
     Note over Plugin: config_dict = dict(self.config)
-    Plugin->>CfgMgr: validate_config(config_dict)
+    Plugin->>CfgMgr: validate(config_dict)
     CfgMgr-->>Plugin: 検証結果
     alt 検証失敗
-        Plugin->>MkDocs: raise MermaidConfigError
+        Plugin->>MkDocs: raise SvgConfigError
     end
 
     Note over Plugin: verboseモードに応じてログレベルを設定
@@ -195,9 +189,9 @@ sequenceDiagram
         Plugin-->>MkDocs: return config
     end
 
-    Plugin->>Proc: new MermaidProcessor(config_dict)
+    Plugin->>Proc: new SvgProcessor(config_dict)
     Proc->>Proc: MarkdownProcessor(config)
-    Proc->>Proc: MermaidImageGenerator(config)
+    Proc->>Proc: SvgToPngConverter(config)
     Proc-->>Plugin: processorインスタンス
 
     Plugin->>Plugin: logger.info("Plugin initialized successfully")
@@ -209,7 +203,7 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant MkDocs
-    participant Plugin as MermaidToImagePlugin
+    participant Plugin as SvgToPngPlugin
 
     MkDocs->>Plugin: on_files(files, config)
 
@@ -227,11 +221,11 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant MkDocs
-    participant Plugin as MermaidToImagePlugin
-    participant Proc as MermaidProcessor
+    participant Plugin as SvgToPngPlugin
+    participant Proc as SvgProcessor
     participant MdProc as MarkdownProcessor
-    participant Block as MermaidBlock
-    participant ImgGen as MermaidImageGenerator
+    participant Block as SvgBlock
+    participant Converter as SvgToPngConverter
 
     MkDocs->>Plugin: on_page_markdown(markdown, page, ...)
 
@@ -244,18 +238,18 @@ sequenceDiagram
     end
 
     Plugin->>Proc: process_page(page.file.src_path, markdown, output_dir, page.url)
-    Proc->>MdProc: extract_mermaid_blocks(markdown)
-    MdProc-->>Proc: blocks: List[MermaidBlock]
+    Proc->>MdProc: extract_svg_blocks(markdown)
+    MdProc-->>Proc: blocks: List[SvgBlock]
 
-    alt Mermaidブロックなし
+    alt SVGブロックなし
         Proc-->>Plugin: (markdown, [])
         Plugin-->>MkDocs: markdown
     end
 
-    loop 各Mermaidブロック
-        Proc->>Block: generate_image(output_path, image_generator, config)
-        Block->>ImgGen: generate(code, output_path, config)
-        ImgGen-->>Block: success: bool
+    loop 各SVGブロック
+        Proc->>Block: generate_png(output_path, svg_converter, config)
+        Block->>Converter: convert_svg_content(code, output_path) or convert_svg_file(file_path, output_path)
+        Converter-->>Block: success: bool
         Block-->>Proc: success: bool
 
         alt 成功
@@ -281,43 +275,33 @@ sequenceDiagram
     Plugin-->>MkDocs: modified_markdown
 ```
 
-### 4. 画像生成フロー (`MermaidImageGenerator.generate`)
+### 4. 画像変換フロー (`SvgToPngConverter.convert_svg_content` / `convert_svg_file`)
 
 ```mermaid
 sequenceDiagram
-    participant ImgGen as MermaidImageGenerator
-    participant Utils
-    participant Subprocess
+    participant Converter as SvgToPngConverter
+    participant CairoSVG
     participant FileSystem
 
-    ImgGen->>Utils: get_temp_file_path()
-    Utils-->>ImgGen: temp_file
-
-    ImgGen->>FileSystem: temp_file.write_text(code)
-
-    ImgGen->>FileSystem: ensure_directory(output_path.parent)
-
-    ImgGen->>ImgGen: _build_mmdc_command(temp_file, output_path, config)
-    Note over ImgGen: CI環境の場合、--no-sandbox付きの<br/>一時Puppeteer設定を生成
-    ImgGen-->>ImgGen: (cmd: list[str], puppeteer_config_file: str | None)
-
-    ImgGen->>Subprocess: run(cmd)
-    Subprocess-->>ImgGen: result
-
-    alt 実行失敗 or 画像ファイルなし
-        ImgGen->>ImgGen: _handle_command_failure() or _handle_missing_output()
-        alt error_on_fail=true
-            ImgGen->>ImgGen: raise MermaidCLIError or MermaidImageError
-        end
-        ImgGen-->>Block: return False
+    alt SVGコンテンツからの変換
+        Converter->>CairoSVG: svg2png(bytestring=svg_content, write_to=output_path, ...)
+    else SVGファイルからの変換
+        Converter->>CairoSVG: svg2png(url=svg_file_path, write_to=output_path, ...)
     end
 
-    ImgGen->>ImgGen: logger.info(...)
-    ImgGen-->>Block: return True
+    CairoSVG-->>Converter: 変換結果
 
-    note right of ImgGen: finallyブロックで一時ファイルをクリーンアップ
-    ImgGen->>Utils: clean_temp_file(temp_file)
-    ImgGen->>Utils: clean_temp_file(puppeteer_config_file)
+    alt 変換失敗
+        Converter->>Converter: エラーログ出力
+        alt error_on_fail=true
+            Converter->>Converter: raise SvgConversionError
+        end
+        Converter-->>Block: return False
+    end
+
+    Converter->>FileSystem: output_pathにPNGを書き込み
+    Converter->>Converter: logger.info(...)
+    Converter-->>Block: return True
 ```
 
 ## 環境別処理戦略
@@ -327,8 +311,8 @@ sequenceDiagram
 ### モード判定
 
 ```python
-# src/mkdocs_mermaid_to_image/plugin.py
-class MermaidToImagePlugin(BasePlugin[MermaidPluginConfig]):
+# src/mkdocs_svg_to_png/plugin.py
+class SvgToPngPlugin(BasePlugin):
     def __init__(self) -> None:
         # ...
         self.is_serve_mode: bool = "serve" in sys.argv
@@ -340,8 +324,8 @@ class MermaidToImagePlugin(BasePlugin[MermaidPluginConfig]):
 プラグインの有効化は、環境変数設定に基づいて動的に制御できます：
 
 ```python
-# src/mkdocs_mermaid_to_image/plugin.py
-def _should_be_enabled(self, config: MermaidPluginConfig) -> bool:
+# src/mkdocs_svg_to_png/plugin.py
+def _should_be_enabled(self, config: dict[str, Any]) -> bool:
     enabled_if_env = config.get("enabled_if_env")
 
     if enabled_if_env is not None:
@@ -358,33 +342,26 @@ def _should_be_enabled(self, config: MermaidPluginConfig) -> bool:
 verboseモードの有無に応じてログ出力を調整：
 
 ```python
-# src/mkdocs_mermaid_to_image/plugin.py
+# src/mkdocs_svg_to_png/plugin.py
 # verboseモードに応じてログレベルを動的に設定
 config_dict["log_level"] = "DEBUG" if self.is_verbose_mode else "WARNING"
 ```
 
 ## プラグイン設定管理
 
-設定は `mkdocs.yml` で行われ、`src/mkdocs_mermaid_to_image/plugin.py` の `config_scheme` と `src/mkdocs_mermaid_to_image/config.py` の `MermaidPluginConfig` で定義されます。
+設定は `mkdocs.yml` で行われ、`src/mkdocs_svg_to_png/plugin.py` の `config_scheme` と `src/mkdocs_svg_to_png/config.py` の `SvgConfigManager` で定義されます。
 
 ### 設定スキーマ
 
 ```python
-# src/mkdocs_mermaid_to_image/plugin.py
-class MermaidToImagePlugin(BasePlugin[MermaidPluginConfig]):
-    config_scheme = (
-        ("enabled", config_options.Type(bool, default=True)),
-        ("enabled_if_env", config_options.Optional(config_options.Type(str))),
-        ("output_dir", config_options.Type(str, default="assets/images")),
-        ("image_format", config_options.Choice(["png", "svg"], default="png")),
-        # ... 他の設定項目 ...
-        ("cleanup_generated_images", config_options.Type(bool, default=False)),
-    )
+# src/mkdocs_svg_to_png/plugin.py
+class SvgToPngPlugin(BasePlugin):
+    config_scheme = SvgConfigManager.get_config_scheme()
 ```
 
 ### 設定検証
 
-`ConfigManager.validate_config()` で設定値の整合性を検証します。
+`SvgConfigManager().validate()` で設定値の整合性を検証します。
 
 ## ファイル管理戦略
 
@@ -393,7 +370,7 @@ class MermaidToImagePlugin(BasePlugin[MermaidPluginConfig]):
 生成された画像をMkDocsのFilesオブジェクトに動的に追加し、ビルド対象に含めます。
 
 ```python
-# src/mkdocs_mermaid_to_image/plugin.py
+# src/mkdocs_svg_to_png/plugin.py
 def _register_generated_images_to_files(self, image_paths: list[str], docs_dir: Path, config: Any) -> None:
     if not (image_paths and self.files):
         return
@@ -420,24 +397,24 @@ def _register_generated_images_to_files(self, image_paths: list[str], docs_dir: 
 
 ```mermaid
 graph TD
-    A[MermaidPreprocessorError]
-    B[MermaidCLIError] --> A
-    C[MermaidConfigError] --> A
-    D[MermaidParsingError] --> A
-    E[MermaidFileError] --> A
-    F[MermaidValidationError] --> A
-    G[MermaidImageError] --> A
+    A[SvgPreprocessorError]
+    B[SvgConfigError] --> A
+    C[SvgConversionError] --> A
+    D[SvgFileError] --> A
+    E[SvgParsingError] --> A
+    F[SvgValidationError] --> A
+    G[SvgImageError] --> A
 
     style A fill:#fce4ec,stroke:#c51162,stroke-width:2px
 ```
 
 ### エラー発生時の処理
 
-- **設定エラー (`MermaidConfigError`, `MermaidFileError`)**: `on_config`で発生し、ビルドプロセスを即座に停止させます。
-- **CLI実行エラー (`MermaidCLIError`)**: `image_generator.py`で発生します。
+- **設定エラー (`SvgConfigError`, `SvgFileError`)**: `on_config`で発生し、ビルドプロセスを即座に停止させます。
+- **変換エラー (`SvgConversionError`)**: `svg_converter.py`で発生します。
   - `error_on_fail=true`: 例外が送出され、ビルドが停止します。
   - `error_on_fail=false`: エラーログを出力後、処理を継続します（該当図は画像化されません）。
-- **画像生成エラー (`MermaidImageError`)**: 画像ファイルが生成されなかった場合に発生します。
+- **画像生成エラー (`SvgImageError`)**: 画像ファイルが生成されなかった場合に発生します。
 - **その他エラー**: 予期せぬエラーは `on_page_markdown` 内でキャッチされ、`error_on_fail` の設定に従って処理されます。
 
 ### ログ出力戦略

@@ -4,7 +4,7 @@ __author__ = "Claude Code Assistant"
 
 __description__ = "MkDocs plugin to convert SVG files to PNG images"
 
-from .mermaid_block import SvgBlock
 from .plugin import SvgToPngPlugin
+from .svg_block import SvgBlock
 
-__all__ = ["SvgToPngPlugin", "SvgBlock"]
+__all__ = ["SvgBlock", "SvgToPngPlugin"]

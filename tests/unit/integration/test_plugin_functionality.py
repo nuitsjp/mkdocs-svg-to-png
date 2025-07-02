@@ -1,16 +1,15 @@
 """
-MkDocs Mermaid to Image Plugin - 統合機能テストスクリプト
+MkDocs Svg to Png Plugin - 統合機能テストスクリプト
 """
 
 import sys
 from unittest.mock import Mock, patch
 
-from mkdocs_svg_to_png.config import ConfigManager
+from mkdocs_svg_to_png.config import SvgConfigManager
 from mkdocs_svg_to_png.plugin import SvgToPngPlugin
-from mkdocs_svg_to_png.processor import MermaidProcessor
+from mkdocs_svg_to_png.processor import SvgProcessor
 from mkdocs_svg_to_png.utils import (
     generate_image_filename,
-    is_command_available,
 )
 
 
@@ -21,69 +20,52 @@ def test_plugin_initialization():
 
 
 def test_processor_functionality():
-    """Mermaidプロセッサの機能テスト"""
+    """Svgプロセッサの機能テスト"""
     config = {
-        "mmdc_path": "mmdc",
         "output_dir": "assets/images",
         "image_format": "png",
-        "theme": "default",
-        "background_color": "white",
-        "width": 800,
-        "height": 600,
-        "scale": 1.0,
-        "css_file": None,
-        "puppeteer_config": None,
-        "mermaid_config": None,
-        "cache_enabled": True,
-        "cache_dir": ".mermaid_cache",
         "preserve_original": False,
         "error_on_fail": False,
         "log_level": "INFO",
+        "output_path": "assets/images",
+        "dpi": 150,
+        "quality": 90,
     }
-    processor = MermaidProcessor(config)
+    processor = SvgProcessor(config)
     markdown_content = """# Test
 
-```mermaid
-graph TD
-    A --> B
+```svg
+<svg>A</svg>
 ```
 
 Some text.
 
-```mermaid {theme: dark}
-sequenceDiagram
-    Alice->>Bob: Hello
-```
+![An SVG](image.svg)
 """
-    blocks = processor.markdown_processor.extract_mermaid_blocks(markdown_content)
+    blocks = processor.markdown_processor.extract_svg_blocks(markdown_content)
     assert len(blocks) == 2
-    assert "graph TD" in blocks[0].code
-    assert "sequenceDiagram" in blocks[1].code
+    assert "<svg>A</svg>" in blocks[0].code
+    assert "image.svg" in blocks[1].file_path
 
 
 def test_config_validation():
     """設定検証機能のテスト"""
     valid_config = {
-        "width": 800,
-        "height": 600,
-        "scale": 1.0,
-        "css_file": None,
-        "puppeteer_config": None,
+        "output_path": "assets/images",
+        "dpi": 150,
+        "quality": 90,
+        "output_format": "png",  # Add missing required key
     }
-    assert ConfigManager.validate_config(valid_config) is True
+    # This test might need adjustment depending on the new config structure
+    # For now, we assume a simple validation check
+    assert SvgConfigManager().validate(valid_config) == valid_config
 
 
 def test_utils():
     """ユーティリティ関数のテスト"""
-    filename = generate_image_filename("test.md", 0, "graph TD\n A --> B", "png")
+    filename = generate_image_filename("test.md", 0, "<svg></svg>", "png")
     assert filename.endswith(".png")
-    assert "test_mermaid_0_" in filename
-
-    # setup_logger was removed as part of logging unification
-    # Testing logger functionality is now covered in test_logging_config.py
-
-    result = is_command_available("python3")
-    assert result is True
+    assert "test_svg_0_" in filename
 
 
 def test_serve_mode_integration():
@@ -100,20 +82,12 @@ def test_serve_mode_integration():
             "enabled": True,
             "output_dir": "assets/images",
             "image_format": "png",
-            "mmdc_path": "mmdc",
-            "theme": "default",
-            "background_color": "white",
-            "width": 800,
-            "height": 600,
-            "scale": 1.0,
-            "css_file": None,
-            "puppeteer_config": None,
-            "mermaid_config": None,
-            "cache_enabled": True,
-            "cache_dir": ".mermaid_cache",
             "preserve_original": False,
             "error_on_fail": False,
             "log_level": "INFO",
+            "dpi": 150,
+            "quality": 90,
+            "output_format": "png",
         }
 
         # プロセッサを模擬（実際には初期化されない想定）
@@ -124,30 +98,19 @@ def test_serve_mode_integration():
         mock_page.file.src_path = "example.md"
         mock_config = {"docs_dir": "/docs"}
 
-        # 複数のMermaidブロックを含むMarkdown
+        # 複数のSVGブロックを含むMarkdown
         test_markdown = """
 # サンプルページ
 
 ## フローチャート
 
-```mermaid
-graph TD
-    A[開始] --> B{条件分岐}
-    B -->|Yes| C[処理A]
-    B -->|No| D[処理B]
-    C --> E[終了]
-    D --> E
+```svg
+<svg>A</svg>
 ```
 
 ## シーケンス図
 
-```mermaid
-sequenceDiagram
-    participant A as Alice
-    participant B as Bob
-    A->>B: Hello Bob
-    B-->>A: Hello Alice
-```
+![An SVG](b.svg)
 
 通常のテキストコンテンツ
 """
@@ -177,6 +140,9 @@ def test_build_mode_integration():
             "enabled": True,
             "output_dir": "assets/images",
             "error_on_fail": False,
+            "dpi": 150,
+            "quality": 90,
+            "output_format": "png",
         }
 
         # プロセッサを模擬して成功ケースを再現
@@ -187,17 +153,17 @@ def test_build_mode_integration():
 
 ## フローチャート
 
-<img alt="Mermaid Diagram" src="assets/images/example_mermaid_0_abc123.png" />
+<img alt=\"SVG Diagram\" src=\"assets/images/example_svg_0_abc123.png\" />
 
 ## シーケンス図
 
-<img alt="Mermaid Diagram" src="assets/images/example_mermaid_1_def456.png" />
+<img alt=\"SVG Diagram\" src=\"assets/images/example_svg_1_def456.png\" />
 
 通常のテキストコンテンツ
 """.strip(),
             [
-                "assets/images/example_mermaid_0_abc123.png",
-                "assets/images/example_mermaid_1_def456.png",
+                "assets/images/example_svg_0_abc123.png",
+                "assets/images/example_svg_1_def456.png",
             ],
         )
         plugin.processor = mock_processor
@@ -207,30 +173,19 @@ def test_build_mode_integration():
         mock_page.file.src_path = "example.md"
         mock_config = {"docs_dir": "/docs", "site_dir": "/site"}
 
-        # 複数のMermaidブロックを含むMarkdown
+        # 複数のSVGブロックを含むMarkdown
         test_markdown = """
 # サンプルページ
 
 ## フローチャート
 
-```mermaid
-graph TD
-    A[開始] --> B{条件分岐}
-    B -->|Yes| C[処理A]
-    B -->|No| D[処理B]
-    C --> E[終了]
-    D --> E
+```svg
+<svg>A</svg>
 ```
 
 ## シーケンス図
 
-```mermaid
-sequenceDiagram
-    participant A as Alice
-    participant B as Bob
-    A->>B: Hello Bob
-    B-->>A: Hello Alice
-```
+![An SVG](b.svg)
 
 通常のテキストコンテンツ
 """
@@ -241,8 +196,8 @@ sequenceDiagram
         )
 
         # 検証
-        assert "assets/images/example_mermaid_0_abc123.png" in result
-        assert "assets/images/example_mermaid_1_def456.png" in result
+        assert "assets/images/example_svg_0_abc123.png" in result
+        assert "assets/images/example_svg_1_def456.png" in result
         plugin.processor.process_page.assert_called_once()  # プロセッサが呼ばれる
         assert len(plugin.generated_images) == 2  # 2つの画像が記録される
 
@@ -277,15 +232,13 @@ def test_serve_mode_performance_optimization():
         plugin.processor = Mock()
         plugin.logger = Mock()
 
-        # 大量のMermaidブロックを含むMarkdown（パフォーマンステスト用）
+        # 大量のSVGブロックを含むMarkdown（パフォーマンステスト用）
         large_markdown = "# Test Page\n\n"
-        for i in range(10):  # 10個のMermaidブロック
+        for i in range(10):  # 10個のSVGブロック
             large_markdown += f"""
 ## Diagram {i}
-```mermaid
-graph TD
-    A{i} --> B{i}
-    B{i} --> C{i}
+```svg
+<svg>{i}</svg>
 ```
 """
 

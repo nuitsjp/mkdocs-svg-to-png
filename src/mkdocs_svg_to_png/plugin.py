@@ -9,24 +9,24 @@ from mkdocs.plugins import BasePlugin
 if TYPE_CHECKING:
     from mkdocs.structure.files import Files
 
-from .config import ConfigManager
+from .config import SvgConfigManager
 from .exceptions import (
-    MermaidConfigError,
-    MermaidFileError,
-    MermaidPreprocessorError,
-    MermaidValidationError,
+    SvgConfigError,
+    SvgConversionError,
+    SvgFileError,
+    SvgValidationError,
 )
 from .logging_config import get_logger
-from .processor import MermaidProcessor
+from .processor import SvgProcessor
 from .utils import clean_generated_images
 
 
 class SvgToPngPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped-call]
-    config_scheme = ConfigManager.get_config_scheme()
+    config_scheme = SvgConfigManager.get_config_scheme()
 
     def __init__(self) -> None:
         super().__init__()
-        self.processor: Optional[MermaidProcessor] = None
+        self.processor: Optional[SvgProcessor] = None
         self.generated_images: list[str] = []
         self.files: Optional[Files] = None
         self.logger = get_logger(__name__)
@@ -49,39 +49,39 @@ class SvgToPngPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped-call]
     def on_config(self, config: Any) -> Any:
         try:
             config_dict = dict(self.config)
-            ConfigManager.validate_config(config_dict)
+            SvgConfigManager().validate(config_dict)
 
             # verboseモードでない場合は、WARNINGレベルに設定
             config_dict["log_level"] = "DEBUG" if self.is_verbose_mode else "WARNING"
 
             if not self._should_be_enabled(self.config):
-                self.logger.info("Mermaid preprocessor plugin is disabled")
+                self.logger.info("SVG to PNG plugin is disabled")
                 return config
 
-            self.processor = MermaidProcessor(config_dict)
+            self.processor = SvgProcessor(config_dict)
 
-            self.logger.info("Mermaid preprocessor plugin initialized successfully")
+            self.logger.info("SVG to PNG plugin initialized successfully")
 
-        except (MermaidConfigError, MermaidFileError) as e:
+        except (SvgConfigError, SvgFileError) as e:
             self.logger.error(f"Configuration error: {e!s}")
             raise
         except FileNotFoundError as e:
             self.logger.error(f"Required file not found: {e!s}")
-            raise MermaidFileError(
+            raise SvgFileError(
                 f"Required file not found during plugin initialization: {e!s}",
                 operation="read",
                 suggestion="Ensure all required files exist",
             ) from e
         except (OSError, PermissionError) as e:
             self.logger.error(f"File system error: {e!s}")
-            raise MermaidFileError(
+            raise SvgFileError(
                 f"File system error during plugin initialization: {e!s}",
                 operation="access",
                 suggestion="Check file permissions and disk space",
             ) from e
         except Exception as e:
             self.logger.error(f"Unexpected error during plugin initialization: {e!s}")
-            raise MermaidConfigError(f"Plugin configuration error: {e!s}") from e
+            raise SvgConfigError(f"Plugin configuration error: {e!s}") from e
 
         return config
 
@@ -151,10 +151,10 @@ class SvgToPngPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped-call]
                 return True
         return False
 
-    def _process_mermaid_diagrams(
+    def _process_svg_diagrams(
         self, markdown: str, page: Any, config: Any
     ) -> Optional[str]:
-        """Mermaid図の処理を実行"""
+        """SVG図の処理を実行"""
         if not self.processor:
             return markdown
 
@@ -178,13 +178,13 @@ class SvgToPngPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped-call]
             # 画像を生成した場合、常にINFOレベルでログを出力
             if image_paths:
                 self.logger.info(
-                    f"Generated {len(image_paths)} Mermaid diagrams for "
+                    f"Generated {len(image_paths)} PNGs from SVGs for "
                     f"{page.file.src_path}"
                 )
 
             return modified_content
 
-        except MermaidPreprocessorError as e:
+        except SvgConversionError as e:
             self.logger.error(f"Error processing {page.file.src_path}: {e!s}")
             if self.config["error_on_fail"]:
                 raise
@@ -195,7 +195,7 @@ class SvgToPngPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped-call]
                 f"File system error processing {page.file.src_path}: {e!s}"
             )
             if self.config["error_on_fail"]:
-                raise MermaidFileError(
+                raise SvgFileError(
                     f"File system error processing {page.file.src_path}: {e!s}",
                     file_path=page.file.src_path,
                     operation="process",
@@ -208,7 +208,7 @@ class SvgToPngPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped-call]
                 f"Validation error processing {page.file.src_path}: {e!s}"
             )
             if self.config["error_on_fail"]:
-                raise MermaidValidationError(
+                raise SvgValidationError(
                     f"Validation error processing {page.file.src_path}: {e!s}",
                     validation_type="page_processing",
                     invalid_value=page.file.src_path,
@@ -219,7 +219,7 @@ class SvgToPngPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped-call]
                 f"Unexpected error processing {page.file.src_path}: {e!s}"
             )
             if self.config["error_on_fail"]:
-                raise MermaidPreprocessorError(f"Unexpected error: {e!s}") from e
+                raise SvgConversionError(f"Unexpected error: {e!s}") from e
             return markdown
 
     def on_page_markdown(
@@ -231,7 +231,7 @@ class SvgToPngPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped-call]
         if self.is_serve_mode:
             return markdown
 
-        return self._process_mermaid_diagrams(markdown, page, config)
+        return self._process_svg_diagrams(markdown, page, config)
 
     def on_post_build(self, *, config: Any) -> None:
         if not self._should_be_enabled(self.config):
@@ -240,7 +240,7 @@ class SvgToPngPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped-call]
         # 生成した画像の総数をINFOレベルで出力
         if self.generated_images:
             self.logger.info(
-                f"Generated {len(self.generated_images)} Mermaid images total"
+                f"Generated {len(self.generated_images)} PNGs from SVGs total"
             )
 
         # 生成画像のクリーンアップ

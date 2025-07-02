@@ -19,7 +19,6 @@ from mkdocs_svg_to_png.utils import (
     generate_image_filename,
     get_relative_path,
     get_temp_file_path,
-    is_command_available,
 )
 
 
@@ -28,29 +27,27 @@ class TestUtilityFunctions:
 
     def test_generate_image_filename(self):
         """画像ファイル名が正しく生成されるかテスト"""
-        filename = generate_image_filename(
-            "test/page.md", 0, "graph TD\n A --> B", "png"
-        )
+        filename = generate_image_filename("test/page.md", 0, "<svg></svg>", "png")
 
         # ファイル名の形式を確認
-        assert filename.startswith("page_mermaid_0_")
+        assert filename.startswith("page_svg_0_")
         assert filename.endswith(".png")
-        assert len(filename.split("_")) == 4  # page_mermaid_0_hash.png
+        assert len(filename.split("_")) == 4  # page_svg_0_hash.png
 
     def test_generate_image_filename_different_content(self):
         """内容が異なるとファイル名も異なるかテスト"""
-        filename1 = generate_image_filename("test.md", 0, "graph TD\n A --> B", "png")
-        filename2 = generate_image_filename("test.md", 0, "graph TD\n C --> D", "png")
+        filename1 = generate_image_filename("test.md", 0, "<svg>A</svg>", "png")
+        filename2 = generate_image_filename("test.md", 0, "<svg>B</svg>", "png")
 
         # 内容が違えばファイル名も違う
         assert filename1 != filename2
 
     def test_generate_image_filename_svg_format(self):
         """SVG形式のファイル名が正しく生成されるかテスト"""
-        filename = generate_image_filename("test.md", 1, "graph TD\n A --> B", "svg")
+        filename = generate_image_filename("test.md", 1, "<svg></svg>", "svg")
 
         assert filename.endswith(".svg")
-        assert "_mermaid_1_" in filename
+        assert "_svg_1_" in filename
 
     def test_ensure_directory_new_directory(self):
         """新しいディレクトリが作成されるかテスト"""
@@ -71,9 +68,9 @@ class TestUtilityFunctions:
 
     def test_get_temp_file_path(self):
         """一時ファイルのパスが正しく取得できるかテスト"""
-        temp_path = get_temp_file_path(".mmd")
+        temp_path = get_temp_file_path(".svg")
 
-        assert temp_path.endswith(".mmd")
+        assert temp_path.endswith(".svg")
         # tempfile.NamedTemporaryFileはデフォルトでファイルを作成します
 
         # ファイルが存在すれば削除
@@ -81,10 +78,10 @@ class TestUtilityFunctions:
             Path(temp_path).unlink()
 
     def test_get_temp_file_path_default_suffix(self):
-        """拡張子省略時は.mmdになるかテスト"""
+        """拡張子省略時は.svgになるかテスト"""
         temp_path = get_temp_file_path()
 
-        assert temp_path.endswith(".mmd")
+        assert temp_path.endswith(".svg")
 
     def test_clean_temp_file_existing_file(self):
         """既存の一時ファイルが削除できるかテスト"""
@@ -131,24 +128,6 @@ class TestUtilityFunctions:
         relative = get_relative_path(file_path, base_path)
         # Linux環境では相対パス計算を試みるので、ファイル名が含まれていればOK
         assert "image.png" in relative
-
-    @patch("mkdocs_svg_to_png.utils.which")
-    def test_is_command_available_true(self, mock_which):
-        """コマンドが存在する場合Trueを返すかテスト"""
-        mock_which.return_value = "/usr/bin/mmdc"
-
-        result = is_command_available("mmdc")
-        assert result is True
-        mock_which.assert_called_once_with("mmdc")
-
-    @patch("mkdocs_svg_to_png.utils.which")
-    def test_is_command_available_false(self, mock_which):
-        """コマンドが存在しない場合Falseを返すかテスト"""
-        mock_which.return_value = None
-
-        result = is_command_available("nonexistent-command")
-        assert result is False
-        mock_which.assert_called_once_with("nonexistent-command")
 
     def test_clean_temp_file_empty_path(self):
         """空のパスが渡された場合の早期リターンをテスト"""

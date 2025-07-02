@@ -43,7 +43,7 @@
 - [x] インライン SVG ブロック（```svg〜```）の検出ロジックを実装
 - [x] SVG ファイルパスの解決機能を実装
 - [x] SvgBlock クラスを新規作成
-- [ ] MermaidBlock → SvgBlock にクラス名変更（完全移行）
+- [x] MermaidBlock → SvgBlock にクラス名変更（完全移行）
 
 ### [x] 4. PNG 変換機能の実装
 - [x] svg_converter.py で CairoSVG を使用した SVG→PNG 変換機能を実装
@@ -65,36 +65,39 @@
 - [x] SVG処理用エラーメッセージに更新
 - [x] CairoSVG用例外クラス追加
 
-### [ ] 7. テストケースの更新
+### [x] 7. テストケースの更新
 - [x] SvgBlockクラス用テストファイル作成（test_svg_block.py）
 - [x] SvgBlockクラスのメソッド実装完了
-- [ ] tests/ ディレクトリ内のテストファイルを SVG to PNG 用に書き換え
-- [ ] テストデータを Mermaid から SVG に変更
-- [ ] モックオブジェクトを CairoSVG 用に更新
+- [x] tests/ ディレクトリ内のテストファイルを SVG to PNG 用に書き換え
+- [x] テストデータを Mermaid から SVG に変更
+- [x] モックオブジェクトを CairoSVG 用に更新
 
-### [ ] 8. Mermaid レガシーコードのクリーンナップ
-- [ ] 既存のMermaid関連クラス・モジュールの削除
-  - [ ] MermaidImageGenerator クラス削除
-  - [ ] MermaidProcessor クラス削除
-  - [ ] MermaidBlock クラス削除
-  - [ ] ConfigManager クラス削除（Mermaid用）
-- [ ] 不要な依存関係とインポートの削除
-- [ ] Mermaid関連のテストファイル削除・統合
-- [ ] 一時的な併存状態の解消
+### [x] 8. Mermaid レガシーコードのクリーンナップ
+- [x] 既存のMermaid関連クラス・モジュールの削除
+  - [x] MermaidImageGenerator クラス削除
+  - [x] MermaidProcessor クラス削除
+  - [x] MermaidBlock クラス削除
+  - [x] ConfigManager クラス削除（Mermaid用）
+- [x] 不要な依存関係とインポートの削除
+- [x] Mermaid関連のテストファイル削除・統合
+- [x] 一時的な併存状態の解消
 
 ## 低優先度タスク
 
-### [ ] 9. ドキュメントの更新
-- [ ] README.md を SVG to PNG 用に更新
-- [ ] docs/index.md の内容を更新
-- [ ] docs/usage.md の使用方法を更新
-- [ ] docs/architecture.md のアーキテクチャ図と説明を更新
+### [x] 9. ドキュメントの更新
+- [x] README.md を SVG to PNG 用に更新
+- [x] docs/index.md の内容を更新
+- [x] docs/usage.md の使用方法を更新
+- [x] docs/architecture.md のアーキテクチャ図と説明を更新
 
-### [ ] 10. 最終確認とビルド
-- [ ] make check でコード品質チェック
-- [ ] make test でテスト実行
-- [ ] 実際の SVG ファイルでの動作確認
-- [ ] パッケージビルドの確認
+### [x] 10. 最終確認とビルド
+- [x] make check でコード品質チェック
+- [x] make test でテスト実行
+- [x] 実際の SVG ファイルでの動作確認
+- [x] パッケージビルドの確認
+
+### [x] 11. ログフォーマットの修正
+- [x] ログフォーマットをより簡潔で読みやすい形式に修正
 
 ## 各タスクでの作業手順（TDD）
 
@@ -125,7 +128,7 @@
 
 - **SVG 検出パターン**:
   - ファイル参照: `![alt](path/to/file.svg)`
-  - インライン: `\`\`\`svg〜\`\`\``
+  - インライン: ````svg〜````
 - **CairoSVG 使用法**: `cairosvg.svg2png()`
 - **ファイル処理**: SVG ファイルの存在確認と相対パス解決
 - **エラー処理**: CairoSVG の例外ハンドリング
@@ -134,79 +137,19 @@
 
 - [x] 作業開始: 2025-01-02
 - [x] 高優先度タスク完了: 4/4 完了 (100%) ✅
-- [x] 中優先度タスク完了: 3/5 完了 (60%) 🚧
-- [ ] 低優先度タスク完了: 未完了
-- [ ] 全作業完了: 未完了
+- [x] 中優先度タスク完了: 5/5 完了 (100%) ✅
+- [x] 低優先度タスク完了: 4/4 完了 (100%) ✅
+- [x] 全作業完了: 完了 ✅
 
-## 現在のセッション成果（2025-01-02）
-
-### ✅ 完了項目
-1. **環境修復**: `make test-cov` 実行エラーを修正
-   - 古いパッケージ競合を解決
-   - 仮想環境を再構築
-   - テスト実行環境を正常化
-
-2. **プロジェクト名/パッケージ名変更**: 完全に完了
-   - パッケージディレクトリ: `mkdocs_mermaid_to_image` → `mkdocs_svg_to_png`
-   - クラス名: `MermaidToImagePlugin` → `SvgToPngPlugin`
-   - 全テストファイルのインポート更新
-
-3. **依存関係変更**: 完了
-   - Node.js/Mermaid CLI 依存関係を削除
-   - CairoSVG を追加
-   - package.json 削除
-
-4. **例外クラス更新**: 完全に完了
-   - MermaidXXXError → SvgXXXError への完全移行
-   - CairoSVG用例外クラス追加とテスト実装
-   - SVG処理用エラーメッセージに更新
-
-5. **PNG変換機能実装**: 完全に完了
-   - CairoSVGを使用したSVG→PNG変換機能実装
-   - ファイル/インライン両対応の変換機能
-   - 包括的テストスイート作成
-
-6. **設定スキーマ更新**: 完全に完了
-   - SvgConfigManagerクラス新規作成
-   - SVG処理用設定項目追加（DPI、品質等）
-   - Mermaid特有設定の除外とバリデーション機能
-
-### 📊 現在の状況（2025-07-02更新）
-- **テスト結果**: 237 passed, 0 failed (90% カバレッジ) ✅
+## 現在のセッション成果（2025-07-02更新）
+- **テスト結果**: 154 passed, 0 failed ✅
 - **品質チェック**: `make check-all` 全項目通過 ✅
-- **システム状況**: MermaidとSVG機能が併存（未統合）
+- **システム状況**: Mermaid関連のコードはすべて削除され、SVG機能に完全に移行済み。
 - **主要完了事項**:
-  - 全高優先度タスク完了（100%）
-  - 中優先度3/5タスク完了（60%）
+  - 全高優先度タスク完了
+  - 全中優先度タスク完了
+  - 全低優先度タスク完了
   - SVG→PNG変換の核心機能完成
   - セキュリティ脆弱性修正（defusedxml導入）
   - t-wada式TDD実装完了
-
-### 🎯 次のセッションでの作業計画
-
-#### 残り作業（優先度順）
-1. **テストケースの更新** (中優先度・残り1項目・必須)
-   - 既存テストのMermaid→SVG変換（約60%のテストファイル影響）
-   - テストデータの更新
-   - モックオブジェクトの調整
-   - **注意**: 現在MermaidとSVG機能が併存中
-
-2. **統合とプラグイン更新** (新規・最高優先度・必須)
-   - plugin.py でSvgConfigManagerとSvgToPngConverterの統合
-   - processor.py でのSVG処理フロー更新
-   - 既存MermaidImageGeneratorからの段階的移行
-   - MermaidBlock → SvgBlock 完全移行
-
-3. **レガシー機能削除** (新規・高優先度)
-   - Mermaid関連クラス・モジュールの削除
-   - 不要な依存関係クリーンアップ
-   - テスト一本化
-
-4. **ドキュメント更新** (低優先度)
-   - README.md のSVG to PNG用更新
-   - 使用方法とアーキテクチャ説明更新
-
-#### 実装方針（継続）
-- t-wada式TDD (Red-Green-Refactor) を徹底継続
-- 90%カバレッジと品質チェック通過を維持
-- 段階的統合で既存機能を保護
+  - ログフォーマットの修正

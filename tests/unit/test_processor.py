@@ -1,90 +1,62 @@
 """
-MermaidProcessorクラスのテスト
-このファイルでは、MermaidProcessorクラスの動作を検証します。
-
-Python未経験者へのヒント：
-- pytestを使ってテストを書いています。
-- Mockやpatchで外部依存を疑似的に置き換えています。
-- assert文で「期待する結果」かどうかを検証します。
+SvgProcessorクラスのテスト
+このファイルでは、SvgProcessorクラスの動作を検証します。
 """
 
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 import pytest
 
-from mkdocs_svg_to_png.exceptions import MermaidCLIError
-from mkdocs_svg_to_png.mermaid_block import MermaidBlock
-from mkdocs_svg_to_png.processor import MermaidProcessor
+from mkdocs_svg_to_png.processor import SvgProcessor
+from mkdocs_svg_to_png.svg_block import SvgBlock
 
 
-class TestMermaidProcessor:
-    """MermaidProcessorクラスのテストクラス"""
+class TestSvgProcessor:
+    """SvgProcessorクラスのテストクラス"""
 
     @pytest.fixture
     def basic_config(self):
         """テスト用の基本設定を返すfixture"""
         return {
-            "mmdc_path": "mmdc",
             "output_dir": "assets/images",
             "image_format": "png",
-            "theme": "default",
-            "background_color": "white",
-            "width": 800,
-            "height": 600,
-            "scale": 1.0,
-            "css_file": None,
-            "puppeteer_config": None,
-            "mermaid_config": None,
-            "cache_enabled": True,
-            "cache_dir": ".mermaid_cache",
             "preserve_original": False,
             "error_on_fail": False,
             "log_level": "INFO",
+            "output_path": "assets/images",
+            "dpi": 150,
+            "quality": 90,
         }
 
-    @patch("mkdocs_svg_to_png.image_generator.is_command_available")
-    def test_processor_initialization(self, mock_command_available, basic_config):
-        """MermaidProcessorの初期化が正しく行われるかテスト"""
-        mock_command_available.return_value = True
-        processor = MermaidProcessor(basic_config)
+    def test_processor_initialization(self, basic_config):
+        """SvgProcessorの初期化が正しく行われるかテスト"""
+        processor = SvgProcessor(basic_config)
         assert processor.config == basic_config
         assert processor.logger is not None
         assert processor.markdown_processor is not None
-        assert processor.image_generator is not None
+        assert processor.svg_converter is not None
 
-    @patch("mkdocs_svg_to_png.image_generator.is_command_available")
-    def test_processor_initialization_missing_cli(
-        self, mock_command_available, basic_config
-    ):
-        """Mermaid CLIが見つからない場合に例外が発生するかテスト"""
-        mock_command_available.return_value = False
-        with pytest.raises(MermaidCLIError):
-            MermaidProcessor(basic_config)
+    def test_process_page_with_blocks(self, basic_config):
+        """SVGブロックがある場合のページ処理をテスト"""
+        processor = SvgProcessor(basic_config)
 
-    @patch("mkdocs_svg_to_png.image_generator.is_command_available")
-    def test_process_page_with_blocks(self, mock_command_available, basic_config):
-        """Mermaidブロックがある場合のページ処理をテスト"""
-        mock_command_available.return_value = True
-        processor = MermaidProcessor(basic_config)
-
-        # MermaidBlockのモックを作成
-        mock_block = Mock(spec=MermaidBlock)
+        # SvgBlockのモックを作成
+        mock_block = Mock(spec=SvgBlock)
         mock_block.get_filename.return_value = "test_0_abc123.png"
-        mock_block.generate_image.return_value = True
+        mock_block.generate_png.return_value = True
 
         # markdown_processorのメソッドをモック化
-        processor.markdown_processor.extract_mermaid_blocks = Mock(
+        processor.markdown_processor.extract_svg_blocks = Mock(
             return_value=[mock_block]
         )
         processor.markdown_processor.replace_blocks_with_images = Mock(
-            return_value="![Mermaid](test.png)"
+            return_value="![SVG](test.png)"
         )
 
         markdown = """# Test
 
-```mermaid
-graph TD
-    A --> B
+```svg
+<svg></svg>
 ```
 """
         # ページ処理を実行
@@ -92,19 +64,17 @@ graph TD
             "test.md", markdown, "/output"
         )
 
-        assert result_content == "![Mermaid](test.png)"
+        assert result_content == "![SVG](test.png)"
         assert len(result_paths) == 1
-        mock_block.generate_image.assert_called_once()
+        mock_block.generate_png.assert_called_once()
         mock_block.get_filename.assert_called_once_with("test.md", 0, "png")
 
-    @patch("mkdocs_svg_to_png.image_generator.is_command_available")
-    def test_process_page_no_blocks(self, mock_command_available, basic_config):
-        """Mermaidブロックがない場合は元の内容が返るかテスト"""
-        mock_command_available.return_value = True
-        processor = MermaidProcessor(basic_config)
+    def test_process_page_no_blocks(self, basic_config):
+        """SVGブロックがない場合は元の内容が返るかテスト"""
+        processor = SvgProcessor(basic_config)
 
         # ブロック抽出が空リストを返すようにモック
-        processor.markdown_processor.extract_mermaid_blocks = Mock(return_value=[])
+        processor.markdown_processor.extract_svg_blocks = Mock(return_value=[])
 
         markdown = """# Test
 
@@ -119,26 +89,21 @@ print("Hello")
         assert result_content == markdown
         assert len(result_paths) == 0
 
-    @patch("mkdocs_svg_to_png.image_generator.is_command_available")
-    def test_process_page_with_generation_failure(
-        self, mock_command_available, basic_config
-    ):
-        """画像生成が失敗した場合の挙動をテスト"""
-        mock_command_available.return_value = True
-        processor = MermaidProcessor(basic_config)
+    def test_process_page_with_conversion_failure(self, basic_config):
+        """画像変換が失敗した場合の挙動をテスト"""
+        processor = SvgProcessor(basic_config)
 
-        # 画像生成が失敗するブロックをモック
-        mock_block = Mock(spec=MermaidBlock)
+        # 画像変換が失敗するブロックをモック
+        mock_block = Mock(spec=SvgBlock)
         mock_block.get_filename.return_value = "test_0_abc123.png"
-        mock_block.generate_image.return_value = False  # 生成失敗
+        mock_block.generate_png.return_value = False  # 変換失敗
 
-        processor.markdown_processor.extract_mermaid_blocks = Mock(
+        processor.markdown_processor.extract_svg_blocks = Mock(
             return_value=[mock_block]
         )
 
-        markdown = """```mermaid
-graph TD
-    A --> B
+        markdown = """```svg
+<svg></svg>
 ```"""
         result_content, result_paths = processor.process_page(
             "test.md", markdown, "/output"

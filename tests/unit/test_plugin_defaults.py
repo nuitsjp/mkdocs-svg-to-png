@@ -40,18 +40,16 @@ class TestPluginDefaults:
         expected_defaults = {
             "enabled": True,
             "output_dir": "assets/images",
-            "image_format": "svg",
-            "mmdc_path": "mmdc",
-            "theme": "default",
-            "background_color": "white",
-            "width": 800,
-            "height": 600,
-            "scale": 1.0,
+            "dpi": 300,
+            "output_format": "png",
+            "quality": 95,
+            "background_color": "transparent",
             "cache_enabled": True,
-            "cache_dir": ".mermaid_cache",
+            "cache_dir": ".svg_cache",
             "preserve_original": False,
             "error_on_fail": False,
             "log_level": "INFO",
+            "cleanup_generated_images": False,
         }
 
         # config_schemeの各設定項目を検証
@@ -75,9 +73,7 @@ class TestPluginDefaults:
 
         # オプショナルな設定項目（Noneまたは空文字がデフォルト）
         optional_configs = [
-            "mermaid_config",
-            "css_file",
-            "puppeteer_config",
+            "enabled_if_env",
             "temp_dir",
         ]
 

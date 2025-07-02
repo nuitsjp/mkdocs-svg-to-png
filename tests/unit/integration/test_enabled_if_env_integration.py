@@ -14,16 +14,14 @@ class TestEnabledIfEnvIntegration:
             config = {
                 "enabled_if_env": "ENABLE_PDF_EXPORT",
                 "log_level": "ERROR",  # ログ出力を抑制
-                "width": 800,
-                "height": 600,
-                "scale": 1.0,
                 "output_dir": "assets/images",
                 "image_format": "png",
-                "mmdc_path": "mmdc",
-                "theme": "default",
-                "background_color": "white",
+                "dpi": 150,
+                "quality": 90,
+                "output_format": "png",
+                "background_color": "transparent",
                 "cache_enabled": True,
-                "cache_dir": ".mermaid_cache",
+                "cache_dir": ".svg_cache",
                 "preserve_original": False,
                 "error_on_fail": False,
                 "cleanup_generated_images": False,
@@ -47,16 +45,14 @@ class TestEnabledIfEnvIntegration:
             config = {
                 "enabled_if_env": "ENABLE_PDF_EXPORT",
                 "log_level": "ERROR",  # ログ出力を抑制
-                "width": 800,
-                "height": 600,
-                "scale": 1.0,
                 "output_dir": "assets/images",
                 "image_format": "png",
-                "mmdc_path": "mmdc",
-                "theme": "default",
-                "background_color": "white",
+                "dpi": 150,
+                "quality": 90,
+                "output_format": "png",
+                "background_color": "transparent",
                 "cache_enabled": True,
-                "cache_dir": ".mermaid_cache",
+                "cache_dir": ".svg_cache",
                 "preserve_original": False,
                 "error_on_fail": False,
                 "cleanup_generated_images": False,
@@ -81,16 +77,14 @@ class TestEnabledIfEnvIntegration:
             config = {
                 "enabled_if_env": "ENABLE_PDF_EXPORT",
                 "log_level": "ERROR",
-                "width": 800,
-                "height": 600,
-                "scale": 1.0,
                 "output_dir": "assets/images",
                 "image_format": "png",
-                "mmdc_path": "mmdc",
-                "theme": "default",
-                "background_color": "white",
+                "dpi": 150,
+                "quality": 90,
+                "output_format": "png",
+                "background_color": "transparent",
                 "cache_enabled": True,
-                "cache_dir": ".mermaid_cache",
+                "cache_dir": ".svg_cache",
                 "preserve_original": False,
                 "error_on_fail": False,
                 "cleanup_generated_images": False,
@@ -103,9 +97,8 @@ class TestEnabledIfEnvIntegration:
             test_markdown = """
 # Test
 
-```mermaid
-graph TD
-    A --> B
+```svg
+<svg></svg>
 ```
 """
 
@@ -135,16 +128,14 @@ graph TD
             config = {
                 "enabled_if_env": "ENABLE_PDF_EXPORT",
                 "log_level": "ERROR",
-                "width": 800,
-                "height": 600,
-                "scale": 1.0,
                 "output_dir": "assets/images",
                 "image_format": "png",
-                "mmdc_path": "mmdc",
-                "theme": "default",
-                "background_color": "white",
+                "dpi": 150,
+                "quality": 90,
+                "output_format": "png",
+                "background_color": "transparent",
                 "cache_enabled": True,
-                "cache_dir": ".mermaid_cache",
+                "cache_dir": ".svg_cache",
                 "preserve_original": False,
                 "error_on_fail": False,
                 "cleanup_generated_images": False,
@@ -154,9 +145,8 @@ graph TD
             test_markdown = """
 # Test
 
-```mermaid
-graph TD
-    A --> B
+```svg
+<svg></svg>
 ```
 """
 
@@ -185,16 +175,14 @@ graph TD
             config = {
                 "enabled_if_env": "ENABLE_PDF_EXPORT",
                 "log_level": "ERROR",
-                "width": 800,
-                "height": 600,
-                "scale": 1.0,
                 "output_dir": "assets/images",
                 "image_format": "png",
-                "mmdc_path": "mmdc",
-                "theme": "default",
-                "background_color": "white",
+                "dpi": 150,
+                "quality": 90,
+                "output_format": "png",
+                "background_color": "transparent",
                 "cache_enabled": True,
-                "cache_dir": ".mermaid_cache",
+                "cache_dir": ".svg_cache",
                 "preserve_original": False,
                 "error_on_fail": False,
                 "cleanup_generated_images": False,

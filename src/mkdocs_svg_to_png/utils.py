@@ -3,28 +3,27 @@ import logging
 import os
 import tempfile
 from pathlib import Path
-from shutil import which
 
 from .logging_config import get_logger
 
 
 def generate_image_filename(
-    page_file: str, block_index: int, mermaid_code: str, image_format: str
+    page_file: str, block_index: int, svg_content: str, image_format: str
 ) -> str:
     page_name = Path(page_file).stem
 
     code_hash = hashlib.md5(
-        mermaid_code.encode("utf-8"), usedforsecurity=False
+        svg_content.encode("utf-8"), usedforsecurity=False
     ).hexdigest()[:8]  # nosec B324
 
-    return f"{page_name}_mermaid_{block_index}_{code_hash}.{image_format}"
+    return f"{page_name}_svg_{block_index}_{code_hash}.{image_format}"
 
 
 def ensure_directory(directory: str) -> None:
     Path(directory).mkdir(parents=True, exist_ok=True)
 
 
-def get_temp_file_path(suffix: str = ".mmd") -> str:
+def get_temp_file_path(suffix: str = ".svg") -> str:
     fd, path = tempfile.mkstemp(suffix=suffix)
 
     os.close(fd)
@@ -119,21 +118,6 @@ def get_relative_path(file_path: str, base_path: str) -> str:
             },
         )
         return file_path
-
-
-def is_command_available(command: str) -> bool:
-    """Check if a command is available, handling complex commands like 'npx mmdc'"""
-    if not command:
-        return False
-
-    # Split command to get the first part (actual executable)
-    command_parts = command.split()
-    if not command_parts:
-        return False
-
-    # For commands like "npx mmdc", check if "npx" is available
-    base_command = command_parts[0]
-    return which(base_command) is not None
 
 
 def clean_generated_images(

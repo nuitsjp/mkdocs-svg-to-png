@@ -11,26 +11,28 @@ import pytest
 
 
 @pytest.fixture
-def mock_mermaid_block():
-    """Mermaidブロックのモックを返すフィクスチャ"""
+def mock_svg_block():
+    """SvgBlockのモックを返すフィクスチャ"""
     mock_block = Mock()
     mock_block.get_filename.return_value = "test_0_abc123.png"
-    mock_block.generate_image.return_value = True
-    mock_block.get_image_markdown.return_value = "![Mermaid](test_0_abc123.png)"
+    mock_block.generate_png.return_value = True
+    mock_block.get_image_markdown.return_value = "![SVG Diagram](test_0_abc123.png)"
     mock_block.index = 0
-    mock_block.mermaid_code = "graph TD\n    A --> B"
+    mock_block.code = "<svg></svg>"
+    mock_block.file_path = ""
     return mock_block
 
 
 @pytest.fixture
-def mock_failed_mermaid_block():
-    """画像生成に失敗するMermaidブロックのモック"""
+def mock_failed_svg_block():
+    """画像生成に失敗するSvgBlockのモック"""
     mock_block = Mock()
     mock_block.get_filename.return_value = "test_0_abc123.png"
-    mock_block.generate_image.return_value = False
-    mock_block.get_image_markdown.return_value = "![Mermaid](test_0_abc123.png)"
+    mock_block.generate_png.return_value = False
+    mock_block.get_image_markdown.return_value = "![SVG Diagram](test_0_abc123.png)"
     mock_block.index = 0
-    mock_block.mermaid_code = "graph TD\n    A --> B"
+    mock_block.code = "<svg></svg>"
+    mock_block.file_path = ""
     return mock_block
 
 
@@ -39,18 +41,13 @@ def basic_config():
     """基本的な設定辞書を返すフィクスチャ"""
     return {
         "enabled": True,
-        "output_dir": "assets/mermaid",
+        "output_dir": "assets/images",
         "image_format": "png",
-        "mmdc_path": "mmdc",
-        "theme": "default",
-        "background_color": "white",
-        "width": 800,
-        "height": 600,
-        "scale": 1.0,
-        "css_file": None,
-        "puppeteer_config": None,
         "error_on_fail": False,
         "log_level": "INFO",
+        "output_path": "assets/images",
+        "dpi": 150,
+        "quality": 90,
     }
 
 

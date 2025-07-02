@@ -69,8 +69,8 @@ class TestSvgConfigManager:
         }
 
         # Should not raise exception
-        result = SvgConfigManager.validate_config(valid_config)
-        assert result is True
+        result = SvgConfigManager().validate(valid_config)
+        assert result == valid_config
 
     def test_validate_svg_config_invalid_dpi(self):
         """Test validation fails for invalid DPI."""
@@ -82,7 +82,7 @@ class TestSvgConfigManager:
         }
 
         with pytest.raises(SvgConfigError) as exc_info:
-            SvgConfigManager.validate_config(invalid_config)
+            SvgConfigManager().validate(invalid_config)
 
         assert "DPI must be a positive integer" in str(exc_info.value)
         assert exc_info.value.details["config_key"] == "dpi"
@@ -98,7 +98,7 @@ class TestSvgConfigManager:
         }
 
         with pytest.raises(SvgConfigError) as exc_info:
-            SvgConfigManager.validate_config(invalid_config)
+            SvgConfigManager().validate(invalid_config)
 
         assert "Quality must be between 0 and 100" in str(exc_info.value)
         assert exc_info.value.details["config_key"] == "quality"
@@ -114,7 +114,7 @@ class TestSvgConfigManager:
         }
 
         with pytest.raises(SvgConfigError) as exc_info:
-            SvgConfigManager.validate_config(invalid_config)
+            SvgConfigManager().validate(invalid_config)
 
         assert "Unsupported output format" in str(exc_info.value)
         assert exc_info.value.details["config_key"] == "output_format"
@@ -130,7 +130,7 @@ class TestSvgConfigManager:
         }
 
         with pytest.raises(SvgConfigError) as exc_info:
-            SvgConfigManager.validate_config(incomplete_config)
+            SvgConfigManager().validate(incomplete_config)
 
         assert "Required configuration key 'dpi' is missing" in str(exc_info.value)
         assert exc_info.value.details["config_key"] == "dpi"
