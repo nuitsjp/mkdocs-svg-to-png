@@ -1,0 +1,1 @@
+# mkdocs-svg-to-png
