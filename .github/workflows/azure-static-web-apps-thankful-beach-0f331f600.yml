@@ -1,0 +1,106 @@
+name: Azure Static Web Apps CI/CD
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/azure-static-web-apps-thankful-beach-0f331f600.yml'
+      - 'docs/**'
+      - 'mkdocs.yml'
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+    branches:
+      - main
+    paths:
+      - '.github/workflows/azure-static-web-apps-thankful-beach-0f331f600.yml'
+      - 'docs/**'
+      - 'mkdocs.yml'
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  build_and_deploy_job:
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed')
+    runs-on: ubuntu-latest
+    name: Build and Deploy Job
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+          lfs: false
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v1
+
+      - name: Install Python dependencies
+        run: uv sync --all-extras
+
+      - name: Install this plugin in development mode
+        run: uv pip install -e .
+
+      - name: Install Mermaid CLI
+        run: npm install -g @mermaid-js/mermaid-cli
+
+      - name: Install Japanese fonts
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fonts-noto-cjk fonts-noto-color-emoji
+
+      - name: Build MkDocs site
+        run: |
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            # mainブランチ: PDF生成のためMermaidダイアグラムを静的画像化
+            ENABLE_PDF_EXPORT=1 uv run mkdocs build
+          else
+            # 開発ブランチ: 高速ビルド（Mermaidは動的レンダリング）
+            uv run mkdocs build
+          fi
+
+      - name: Upload PDF artifact
+        if: github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: documentation-pdf
+          path: site/*.pdf
+          retention-days: 30
+
+      - name: Build And Deploy
+        id: builddeploy
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_THANKFUL_BEACH_0F331F600 }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }} # Used for Github integrations (i.e. PR comments)
+          action: "upload"
+          app_location: "site"  # MkDocs build output directory
+          api_location: ""      # Api source code path - optional
+          output_location: ""   # Not needed when app_location points to build output
+          skip_app_build: true  # Skip Oryx build since we already built with MkDocs
+
+  close_pull_request_job:
+    if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    name: Close Pull Request Job
+    steps:
+      - name: Close Pull Request
+        id: closepullrequest
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_THANKFUL_BEACH_0F331F600 }}
+          action: "close"
