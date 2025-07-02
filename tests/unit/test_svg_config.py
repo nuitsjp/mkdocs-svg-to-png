@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from mkdocs_svg_to_png.config import SvgConfigManager
-from mkdocs_svg_to_png.exceptions import SvgConfigError, SvgFileError
+from mkdocs_svg_to_png.exceptions import SvgConfigError
 
 
 class TestSvgConfigManager:
@@ -15,21 +15,21 @@ class TestSvgConfigManager:
         """Test that SVG config scheme includes all required options."""
         config_scheme = SvgConfigManager.get_config_scheme()
         config_keys = {key for key, _ in config_scheme}
-        
+
         # Basic plugin options
         assert "enabled" in config_keys
         assert "enabled_if_env" in config_keys
         assert "output_dir" in config_keys
         assert "error_on_fail" in config_keys
         assert "log_level" in config_keys
-        
+
         # SVG-specific options
         assert "dpi" in config_keys
         assert "output_format" in config_keys
         assert "quality" in config_keys
         assert "background_color" in config_keys
         assert "cache_enabled" in config_keys
-        
+
         # Should NOT include Mermaid-specific options
         assert "theme" not in config_keys
         assert "mmdc_path" not in config_keys
@@ -42,8 +42,12 @@ class TestSvgConfigManager:
     def test_svg_config_defaults(self):
         """Test SVG configuration default values."""
         config_scheme = SvgConfigManager.get_config_scheme()
-        defaults = {key: option.default for key, option in config_scheme if hasattr(option, 'default')}
-        
+        defaults = {
+            key: option.default
+            for key, option in config_scheme
+            if hasattr(option, "default")
+        }
+
         # Test SVG-specific defaults
         assert defaults["dpi"] == 300
         assert defaults["output_format"] == "png"
@@ -63,7 +67,7 @@ class TestSvgConfigManager:
             "output_dir": "assets/images",
             "error_on_fail": False,
         }
-        
+
         # Should not raise exception
         result = SvgConfigManager.validate_config(valid_config)
         assert result is True
@@ -76,10 +80,10 @@ class TestSvgConfigManager:
             "output_format": "png",
             "quality": 95,
         }
-        
+
         with pytest.raises(SvgConfigError) as exc_info:
             SvgConfigManager.validate_config(invalid_config)
-        
+
         assert "DPI must be a positive integer" in str(exc_info.value)
         assert exc_info.value.details["config_key"] == "dpi"
         assert exc_info.value.details["config_value"] == 0
@@ -89,29 +93,29 @@ class TestSvgConfigManager:
         invalid_config = {
             "enabled": True,
             "dpi": 300,
-            "output_format": "png", 
+            "output_format": "png",
             "quality": 150,  # Should be 0-100
         }
-        
+
         with pytest.raises(SvgConfigError) as exc_info:
             SvgConfigManager.validate_config(invalid_config)
-        
+
         assert "Quality must be between 0 and 100" in str(exc_info.value)
         assert exc_info.value.details["config_key"] == "quality"
         assert exc_info.value.details["config_value"] == 150
 
     def test_validate_svg_config_invalid_output_format(self):
-        """Test validation fails for unsupported output format.""" 
+        """Test validation fails for unsupported output format."""
         invalid_config = {
             "enabled": True,
             "dpi": 300,
             "output_format": "jpeg",  # Only png supported
             "quality": 95,
         }
-        
+
         with pytest.raises(SvgConfigError) as exc_info:
             SvgConfigManager.validate_config(invalid_config)
-        
+
         assert "Unsupported output format" in str(exc_info.value)
         assert exc_info.value.details["config_key"] == "output_format"
         assert exc_info.value.details["config_value"] == "jpeg"
@@ -124,10 +128,10 @@ class TestSvgConfigManager:
             "output_format": "png",
             "quality": 95,
         }
-        
+
         with pytest.raises(SvgConfigError) as exc_info:
             SvgConfigManager.validate_config(incomplete_config)
-        
+
         assert "Required configuration key 'dpi' is missing" in str(exc_info.value)
         assert exc_info.value.details["config_key"] == "dpi"
 
@@ -135,15 +139,15 @@ class TestSvgConfigManager:
         """Test that config scheme has correct types."""
         config_scheme = SvgConfigManager.get_config_scheme()
         config_dict = dict(config_scheme)
-        
+
         # Import the MkDocs config options for type checking
         from mkdocs.config import config_options
-        
+
         # Check that dpi is an integer option
         assert isinstance(config_dict["dpi"], config_options.Type)
-        
-        # Check that output_format is a choice option 
+
+        # Check that output_format is a choice option
         assert isinstance(config_dict["output_format"], config_options.Choice)
-        
+
         # Check that enabled is a boolean option
         assert isinstance(config_dict["enabled"], config_options.Type)
