@@ -1,155 +1,197 @@
-# TODO: SVG to PNG プラグイン変換作業
+# MkDocs SVG to PNG Plugin - Mermaid Integration TODOリスト
 
-## 重要な指示
+## 概要
+`mkdocs-mermaid-to-image`を使用してMermaidからSVGに変換し、その後`mkdocs-svg-to-png`でSVGからPNGに変換する2段階プロセスを実装。
 
-1. **進捗を更新すること**: 各タスクの完了時に、[このファイル](./TODO.md)の進捗状況を更新してください
-2. **進捗更新時に計画を再考すること**: タスク完了時に、残りの作業と依存関係を見直し、必要に応じて計画を調整してください
-3. **t-wada式TDDを徹底すること**:
-   - プロダクトソースを修正する場合、**必ず先に修正先を想定したテストを実装する**
-   - 各タスクを **Red-Green-Refactor** サイクルで実行する
-   - タスクは小さな単位に分解し、各タスクごとにサイクルを回す
-   - `make test-cov` と `make check-all` を利用して品質を維持する
+## フェーズ1: 環境セットアップ
 
-**TDDサイクル**:
-- **Red**: 失敗するテストを書く
-- **Green**: テストを通す最小限のコードを書く
-- **Refactor**: コードを改善する（テストは通し続ける）
+### 1.1 パッケージインストール
+- [x] `mkdocs-mermaid-to-image`をPyPIからインストール
+  ```bash
+  pip install mkdocs-mermaid-to-image
+  ```
+  ✅ インストール完了: mkdocs-mermaid-to-image 1.2.0
+- [x] Mermaid CLIとPuppeteerのセットアップ
+  ```bash
+  sudo npm install -g @mermaid-js/mermaid-cli
+  npx puppeteer browsers install chrome-headless-shell
+  ```
+  ✅ Mermaid CLI および Puppeteer Chrome ヘッドレスシェル インストール完了
 
-新しいセッションでも作業を継続できるよう、常に最新の状況を反映させることが重要です。
+### 1.2 依存関係の確認
+- [x] Node.js環境の確認
+  ✅ Node.js v22.17.0, npm 10.9.2
+- [x] Puppeteerブラウザの動作確認
+  ✅ Chrome headless shell 138.0.7204.92 インストール完了
+- [x] Mermaid CLI (mmdc)のPATH確認
+  ✅ /usr/bin/mmdc で利用可能
 
-## 全体概要
+## フェーズ2: 設定ファイルの更新
 
-`mkdocs-mermaid-to-image` プラグインを `mkdocs-svg-to-png` プラグインに変換する作業です。
+### 2.1 mkdocs.ymlの修正
+- [x] pymdownx.superfencesにMermaidブロック追加
+  ```yaml
+  markdown_extensions:
+    - pymdownx.superfences:
+        custom_fences:
+          - name: mermaid
+            class: mermaid
+          - name: svg
+            class: svg
+  ```
+  ✅ Mermaidフェンスブロック追加完了
+- [x] プラグイン設定の追加
+  ```yaml
+  plugins:
+    - search
+    # ステップ1: MermaidからSVGに変換
+    - mermaid-to-image:
+        image_format: "svg"
+        mermaid_config:
+          theme: "default"
+    # ステップ2: SVGからPNGに変換（PDF出力時のみ）
+    - svg-to-png:
+        enabled_if_env: ENABLE_PDF_EXPORT
+        output_format: png
+        dpi: 300
+        quality: 95
+        background_color: "transparent"
+        cache_enabled: true
+        preserve_original: false
+        error_on_fail: false
+        log_level: "INFO"
+    - to-pdf:
+        enabled_if_env: ENABLE_PDF_EXPORT
+  ```
+  ✅ プラグイン設定更新完了
 
-- **変換前**: Mermaid コードブロックを抽出 → Mermaid CLI で画像生成
-- **変換後**: SVG ファイル/コードブロックを抽出 → CairoSVG で PNG 変換
+### 2.2 プラグイン実行順序の最適化
+- [x] mermaid-to-imageが先に実行されることを確認
+  ✅ プラグインの順序を適切に設定済み
+- [x] svg-to-pngがその後で実行されることを確認
+  ✅ 2番目に実行される設定済み
+- [x] to-pdfが最後に実行されることを確認
+  ✅ 最後に実行される設定済み
 
-## 高優先度タスク
+## フェーズ3: テスト用コンテンツの作成
 
-### [x] 1. プロジェクト名とパッケージ名の変更
-- [x] プロジェクト名を `mkdocs-svg-to-png` に変更
-- [x] パッケージディレクトリ名を `mkdocs_svg_to_png` に変更
-- [x] pyproject.toml の name と description を更新
-- [x] __init__.py の内容を更新
-- [x] plugin.py のクラス名を `SvgToPngPlugin` に変更
+### 3.1 Mermaidテストページの作成
+- [x] `docs/test-mermaid.md`ファイルの作成
+  ✅ Mermaidテストページ作成完了
+- [x] 各種Mermaid図の追加：
+  - [x] フローチャート
+  - [x] シーケンス図
+  - [x] ガントチャート
+  - [x] クラス図
+  - [x] ER図
+  ✅ 全6種類のMermaid図を追加済み (フローチャート、シーケンス図、ガントチャート、クラス図、ER図、状態図、パイチャート)
 
-### [x] 2. 依存関係の変更
-- [x] pyproject.toml から Node.js/Mermaid CLI 関連の依存関係を削除
-- [x] CairoSVG を依存関係に追加
-- [x] package.json を削除（Node.js 依存関係が不要になるため）
+### 3.2 テストコンテンツの例
+```markdown
+## フローチャート
+```mermaid
+flowchart TD
+    A[開始] --> B{条件判定}
+    B -->|Yes| C[処理A]
+    B -->|No| D[処理B]
+    C --> E[終了]
+    D --> E
+```
 
-### [x] 3. SVG ブロック抽出ロジックの実装
-- [x] markdown_processor.py で SVG ファイル参照の検出ロジックを実装
-- [x] インライン SVG ブロック（```svg〜```）の検出ロジックを実装
-- [x] SVG ファイルパスの解決機能を実装
-- [x] SvgBlock クラスを新規作成
-- [x] MermaidBlock → SvgBlock にクラス名変更（完全移行）
+## シーケンス図
+```mermaid
+sequenceDiagram
+    participant A as ユーザー
+    participant B as サーバー
+    participant C as データベース
 
-### [x] 4. PNG 変換機能の実装
-- [x] svg_converter.py で CairoSVG を使用した SVG→PNG 変換機能を実装
-- [x] SVGファイル/インライン両対応の変換機能実装
-- [x] CairoSVG用エラーハンドリング追加
-- [x] テスト作成とTDD実装完了
+    A->>B: リクエスト送信
+    B->>C: データ取得
+    C-->>B: データ返却
+    B-->>A: レスポンス送信
+```
+```
 
-## 中優先度タスク
+### 3.3 ナビゲーションの更新
+- [x] mkdocs.ymlのnavセクションにテストページを追加
 
-### [x] 5. 設定スキーマの更新
-- [x] config.py に SvgConfigManager クラスを追加
-- [x] SVG 処理用の設定項目を追加（DPI、品質等）
-- [x] Mermaid 特有の設定を除外した新しいスキーマ
-- [x] 設定バリデーション機能追加
+## フェーズ4: 動作確認とテスト
 
-### [x] 6. 例外クラスの更新
-- [x] exceptions.py の例外クラス名を SVG 関連に変更
-- [x] MermaidXXXError → SvgXXXError に変更
-- [x] SVG処理用エラーメッセージに更新
-- [x] CairoSVG用例外クラス追加
+### 4.1 通常ビルドテスト（SVGのみ）
+- [ ] `uv run mkdocs build`を実行
+- [ ] Mermaidブロックが正しくSVGに変換されることを確認
+- [ ] SVGファイルの生成場所と数を確認
+  ```bash
+  find site -name "*.svg" | wc -l
+  ls -la site/**/*.svg
+  ```
 
-### [x] 7. テストケースの更新
-- [x] SvgBlockクラス用テストファイル作成（test_svg_block.py）
-- [x] SvgBlockクラスのメソッド実装完了
-- [x] tests/ ディレクトリ内のテストファイルを SVG to PNG 用に書き換え
-- [x] テストデータを Mermaid から SVG に変更
-- [x] モックオブジェクトを CairoSVG 用に更新
+### 4.2 PDF出力ビルドテスト（SVG→PNG変換）
+- [ ] `ENABLE_PDF_EXPORT=1 uv run mkdocs build`を実行
+- [ ] SVGがPNGに変換されることを確認
+- [ ] PNG画像の品質確認（DPI: 300, Quality: 95）
+  ```bash
+  find site -name "*.png" | wc -l
+  ls -la site/**/*.png
+  ```
 
-### [x] 8. Mermaid レガシーコードのクリーンナップ
-- [x] 既存のMermaid関連クラス・モジュールの削除
-  - [x] MermaidImageGenerator クラス削除
-  - [x] MermaidProcessor クラス削除
-  - [x] MermaidBlock クラス削除
-  - [x] ConfigManager クラス削除（Mermaid用）
-- [x] 不要な依存関係とインポートの削除
-- [x] Mermaid関連のテストファイル削除・統合
-- [x] 一時的な併存状態の解消
+### 4.3 キャッシュ機能の確認
+- [ ] `.svg_cache`ディレクトリの作成確認
+- [ ] 再ビルド時のキャッシュ利用確認
+- [ ] キャッシュファイルの内容確認
 
-## 低優先度タスク
+### 4.4 PDF生成の最終確認
+- [ ] `site/MkDocs-SVG-to-PNG.pdf`の生成確認
+- [ ] PDFファイル内でMermaid図がPNG画像として表示されることを確認
+- [ ] 画像の解像度と品質の確認
 
-### [x] 9. ドキュメントの更新
-- [x] README.md を SVG to PNG 用に更新
-- [x] docs/index.md の内容を更新
-- [x] docs/usage.md の使用方法を更新
-- [x] docs/architecture.md のアーキテクチャ図と説明を更新
+## フェーズ5: エラーハンドリングとトラブルシューティング
 
-### [x] 10. 最終確認とビルド
-- [x] make check でコード品質チェック
-- [x] make test でテスト実行
-- [x] 実際の SVG ファイルでの動作確認
-- [x] パッケージビルドの確認
+### 5.1 ログレベルの調整
+- [ ] `log_level: "DEBUG"`に設定してデバッグ情報を取得
+- [ ] エラー発生時の詳細ログの確認
 
-### [x] 11. ログフォーマットの修正
-- [x] ログフォーマットをより簡潔で読みやすい形式に修正
+### 5.2 よくある問題の対処
+- [ ] Mermaid CLIが見つからない場合の対処
+- [ ] Puppeteerブラウザの問題の対処
+- [ ] SVG→PNG変換エラーの対処
+- [ ] メモリ不足の問題の対処
 
-## 各タスクでの作業手順（TDD）
+### 5.3 パフォーマンス最適化
+- [ ] キャッシュ設定の最適化
+- [ ] 並列処理の設定確認
+- [ ] 大量の図を含む場合のパフォーマンス測定
 
-各タスクは以下の手順で実行する：
+## フェーズ6: ドキュメント更新
 
-1. **テスト作成（Red）**:
-   ```bash
-   # 期待する動作のテストを先に書く
-   # テストは失敗することを確認する
-   make test-cov
-   ```
+### 6.1 README.mdの更新
+- [ ] Mermaid対応の追加
+- [ ] インストール手順の更新
+- [ ] 使用例の追加
 
-2. **最小限の実装（Green）**:
-   ```bash
-   # テストを通すための最小限のコードを書く
-   make test-cov  # テストが通ることを確認
-   make check-all # 品質チェック
-   ```
+### 6.2 設定例の追加
+- [ ] 推奨設定の文書化
+- [ ] トラブルシューティングガイドの作成
 
-3. **リファクタリング（Refactor）**:
-   ```bash
-   # コードを改善する（テストは通し続ける）
-   make test-cov  # リファクタリング後もテストが通ることを確認
-   make check-all # 品質維持
-   ```
+## フェーズ7: 継続的統合
 
-## 技術的な注意点
+### 7.1 テストケースの追加
+- [ ] Mermaid変換のユニットテスト
+- [ ] エンドツーエンドテストの作成
 
-- **SVG 検出パターン**:
-  - ファイル参照: `![alt](path/to/file.svg)`
-  - インライン: ````svg〜````
-- **CairoSVG 使用法**: `cairosvg.svg2png()`
-- **ファイル処理**: SVG ファイルの存在確認と相対パス解決
-- **エラー処理**: CairoSVG の例外ハンドリング
+### 7.2 CI/CDパイプラインの更新
+- [ ] GitHub Actionsでの自動テスト
+- [ ] 複数環境での動作確認
 
-## 進捗記録
+## 成功指標
+- [ ] 全てのMermaid図がSVGに正しく変換される
+- [ ] PDF出力時にSVGがPNGに変換される
+- [ ] 画像品質が期待される水準を満たす
+- [ ] キャッシュ機能が正常に動作する
+- [ ] エラーハンドリングが適切に機能する
+- [ ] ドキュメントが完全で理解しやすい
 
-- [x] 作業開始: 2025-01-02
-- [x] 高優先度タスク完了: 4/4 完了 (100%) ✅
-- [x] 中優先度タスク完了: 5/5 完了 (100%) ✅
-- [x] 低優先度タスク完了: 4/4 完了 (100%) ✅
-- [x] 全作業完了: 完了 ✅
-
-## 現在のセッション成果（2025-07-02更新）
-- **テスト結果**: 154 passed, 0 failed ✅
-- **品質チェック**: `make check-all` 全項目通過 ✅
-- **システム状況**: Mermaid関連のコードはすべて削除され、SVG機能に完全に移行済み。
-- **主要完了事項**:
-  - 全高優先度タスク完了
-  - 全中優先度タスク完了
-  - 全低優先度タスク完了
-  - SVG→PNG変換の核心機能完成
-  - セキュリティ脆弱性修正（defusedxml導入）
-  - t-wada式TDD実装完了
-  - ログフォーマットの修正
+## 備考
+- Mermaid CLIの2段階描画アプローチを参考に、必要に応じて高度な設定を追加
+- `deviceScaleFactor`などの高解像度設定を検討
+- カスタムCSSの適用も将来的に検討

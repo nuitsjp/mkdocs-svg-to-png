@@ -11,6 +11,8 @@ markdown_extensions:
   - pymdownx.details
   - pymdownx.superfences:
       custom_fences:
+        - name: mermaid
+          class: mermaid
         - name: svg
           class: svg
   - pymdownx.highlight
@@ -19,6 +21,9 @@ markdown_extensions:
 
 plugins:
   - search
+  # ステップ1: MermaidからSVGに変換
+  - mermaid-to-image
+  # ステップ2: SVGからPNGに変換（PDF出力時のみ）
   - svg-to-png:
       enabled_if_env: ENABLE_PDF_EXPORT
       output_format: png
@@ -38,3 +43,14 @@ plugins:
       toc_title: 目次
       toc_level: 3
       output_path: MkDocs-SVG-to-PNG.pdf
+
+nav:
+  - Home: index.md
+  - Mermaidテスト: test-mermaid.md
+  - Architecture: architecture.md
+  - Usage: usage.md
+  - Appendix:
+      - Claude Cheat Sheet: appendix/claude-cheat-sheet.md
+      - Mermaid CLI: appendix/mermaid-cli.md
+      - MkDocs Architecture: appendix/mkdocs-architecture.md
+      - Release Strategy: appendix/release-strategy.md
