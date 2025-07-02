@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any
 
@@ -13,6 +12,12 @@ except ImportError:
         "CairoSVG is required for SVG to PNG conversion. "
         "Install it with: pip install cairosvg"
     ) from None
+
+try:
+    import defusedxml.ElementTree as ET
+except ImportError:
+    # Fallback to standard library (less secure but available)
+    import xml.etree.ElementTree as ET  # nosec B405
 
 from .exceptions import SvgConversionError, SvgFileError
 from .logging_config import get_logger
@@ -125,8 +130,8 @@ class SvgToPngConverter:
             SvgConversionError: If SVG content is invalid
         """
         try:
-            # Try to parse as XML
-            ET.fromstring(svg_content)
+            # Try to parse as XML using defusedxml (secure) or fallback
+            ET.fromstring(svg_content)  # nosec B314
 
             # Check if it's actually SVG
             if not svg_content.strip().startswith("<svg"):

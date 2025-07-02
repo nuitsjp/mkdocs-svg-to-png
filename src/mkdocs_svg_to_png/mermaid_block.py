@@ -56,6 +56,61 @@ class SvgBlock:
                 f"start={self.start_pos}, end={self.end_pos})"
             )
 
+    def generate_png(
+        self, output_path: str, svg_converter: Any, config: dict[str, Any]
+    ) -> bool:
+        """SVGからPNG画像を生成する"""
+        if self.file_path:
+            # SVGファイルから変換
+            result = svg_converter.convert_svg_file(self.file_path, output_path)
+        else:
+            # インラインSVGコードから変換
+            result = svg_converter.convert_svg_content(self.code, output_path)
+        return bool(result)
+
+    def get_image_markdown(
+        self,
+        image_path: str,
+        page_file: str,
+        preserve_original: bool = False,
+        page_url: str = "",
+    ) -> str:
+        """画像のMarkdownを生成する"""
+        image_path_obj = Path(image_path)
+
+        # 相対パスプレフィックスを計算
+        relative_prefix = _calculate_relative_path_prefix(page_file)
+
+        # 相対パス付きで画像パスを構築
+        relative_image_path = f"{relative_prefix}assets/images/{image_path_obj.name}"
+
+        image_markdown = f"![SVG Diagram]({relative_image_path})"
+
+        if preserve_original:
+            if self.file_path:
+                # ファイル参照の場合
+                if self.attributes:
+                    attr_str = ", ".join(
+                        f"{k}: {v}" for k, v in self.attributes.items()
+                    )
+                    original_block = f"![SVG File]({self.file_path}) {{{attr_str}}}"
+                else:
+                    original_block = f"![SVG File]({self.file_path})"
+            elif self.attributes:
+                attr_str = ", ".join(f"{k}: {v}" for k, v in self.attributes.items())
+                original_block = f"```svg {{{attr_str}}}\n{self.code}\n```"
+            else:
+                original_block = f"```svg\n{self.code}\n```"
+
+            image_markdown = f"{image_markdown}\n\n{original_block}"
+
+        return image_markdown
+
+    def get_filename(self, page_file: str, index: int, image_format: str) -> str:
+        """画像ファイル名を生成する"""
+        content = self.file_path if self.file_path else self.code
+        return generate_image_filename(page_file, index, content, image_format)
+
 
 class MermaidBlock:
     def __init__(

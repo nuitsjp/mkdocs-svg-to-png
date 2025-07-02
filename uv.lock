@@ -1080,6 +1080,7 @@ name = "mkdocs-svg-to-png"
 source = { editable = "." }
 dependencies = [
     { name = "cairosvg" },
+    { name = "defusedxml" },
     { name = "mkdocs" },
 ]
 
@@ -1119,6 +1120,7 @@ dev = [
 requires-dist = [
     { name = "bandit", marker = "extra == 'dev'", specifier = ">=1.7.0" },
     { name = "cairosvg", specifier = ">=2.7.0" },
+    { name = "defusedxml", specifier = ">=0.7.0" },
     { name = "hypothesis", marker = "extra == 'dev'", specifier = ">=6.0.0" },
     { name = "mkdocs", specifier = ">=1.4.0" },
     { name = "mkdocs-to-pdf", marker = "extra == 'dev'", specifier = ">=0.10.1" },

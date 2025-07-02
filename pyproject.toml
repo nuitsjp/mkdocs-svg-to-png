@@ -28,6 +28,7 @@ dynamic = ["version"]
 dependencies = [
     "mkdocs>=1.4.0",
     "cairosvg>=2.7.0",
+    "defusedxml>=0.7.0",
 ]
 
 [project.optional-dependencies]
@@ -128,6 +129,10 @@ strict_equality = true
 module = "tests.*"
 disallow_untyped_defs = false
 disallow_incomplete_defs = false
+
+[[tool.mypy.overrides]]
+module = ["cairosvg", "defusedxml.*"]
+ignore_missing_imports = true
 
 [tool.bandit]
 exclude_dirs = ["tests", ".venv"]
