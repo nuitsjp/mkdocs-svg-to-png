@@ -22,8 +22,8 @@ from pathlib import Path
 import pytest  # Pythonのテストフレームワーク
 
 # テスト対象のConfigManagerクラスをインポート
-from mkdocs_mermaid_to_image.config import ConfigManager
-from mkdocs_mermaid_to_image.exceptions import MermaidConfigError, MermaidFileError
+from mkdocs_svg_to_png.config import ConfigManager
+from mkdocs_svg_to_png.exceptions import MermaidConfigError, MermaidFileError
 
 
 class TestConfigManager:

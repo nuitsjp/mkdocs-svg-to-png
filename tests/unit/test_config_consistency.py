@@ -1,19 +1,19 @@
 """Test configuration consistency between config.py and plugin.py."""
 
-from mkdocs_mermaid_to_image.config import ConfigManager
-from mkdocs_mermaid_to_image.plugin import MermaidToImagePlugin
+from mkdocs_svg_to_png.config import ConfigManager
+from mkdocs_svg_to_png.plugin import SvgToPngPlugin
 
 
 class TestConfigConsistency:
     """Test consistency between ConfigManager and Plugin config schemes."""
 
     def test_config_schemeの一貫性確認(self):
-        """ConfigManagerとMermaidToImagePluginの設定スキーマが一貫していることを確認。"""
+        """ConfigManagerとSvgToPngPluginの設定スキーマが一貫していることを確認。"""
         # ConfigManagerから設定スキーマを取得
         config_manager_scheme = ConfigManager.get_config_scheme()
 
         # プラグインから設定スキーマを取得
-        plugin = MermaidToImagePlugin()
+        plugin = SvgToPngPlugin()
         plugin_scheme = plugin.config_scheme
 
         # 設定項目名を抽出
@@ -51,7 +51,7 @@ class TestConfigConsistency:
 
     def test_デフォルト値の妥当性確認(self):
         """各設定項目のデフォルト値が妥当であることを確認。"""
-        plugin = MermaidToImagePlugin()
+        plugin = SvgToPngPlugin()
 
         # 期待される型とデフォルト値のマッピング
         expected_types_and_defaults = {

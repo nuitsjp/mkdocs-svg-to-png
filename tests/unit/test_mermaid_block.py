@@ -10,7 +10,7 @@ Python未経験者へのヒント：
 
 from unittest.mock import Mock, patch
 
-from mkdocs_mermaid_to_image.mermaid_block import (
+from mkdocs_svg_to_png.mermaid_block import (
     MermaidBlock,
     _calculate_relative_path_prefix,
 )
@@ -147,7 +147,7 @@ class TestMermaidBlock:
         block = MermaidBlock("graph TD\n A --> B", 0, 20)
 
         with patch(
-            "mkdocs_mermaid_to_image.mermaid_block.generate_image_filename"
+            "mkdocs_svg_to_png.mermaid_block.generate_image_filename"
         ) as mock_gen_filename:
             mock_gen_filename.return_value = "test_0_abc123.png"
 

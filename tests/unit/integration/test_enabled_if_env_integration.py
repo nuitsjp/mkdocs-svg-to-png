@@ -1,7 +1,7 @@
 import os
 import unittest.mock
 
-from mkdocs_mermaid_to_image.plugin import MermaidToImagePlugin
+from mkdocs_svg_to_png.plugin import SvgToPngPlugin
 
 
 class TestEnabledIfEnvIntegration:
@@ -10,7 +10,7 @@ class TestEnabledIfEnvIntegration:
     def test_plugin_lifecycle_with_env_var_enabled(self):
         """環境変数が設定されている場合のプラグインライフサイクルテスト"""
         with unittest.mock.patch.dict(os.environ, {"ENABLE_PDF_EXPORT": "1"}):
-            plugin = MermaidToImagePlugin()
+            plugin = SvgToPngPlugin()
             config = {
                 "enabled_if_env": "ENABLE_PDF_EXPORT",
                 "log_level": "ERROR",  # ログ出力を抑制
@@ -43,7 +43,7 @@ class TestEnabledIfEnvIntegration:
     def test_plugin_lifecycle_with_env_var_disabled(self):
         """環境変数が設定されていない場合のプラグインライフサイクルテスト"""
         with unittest.mock.patch.dict(os.environ, {}, clear=True):
-            plugin = MermaidToImagePlugin()
+            plugin = SvgToPngPlugin()
             config = {
                 "enabled_if_env": "ENABLE_PDF_EXPORT",
                 "log_level": "ERROR",  # ログ出力を抑制
@@ -77,7 +77,7 @@ class TestEnabledIfEnvIntegration:
     def test_plugin_markdown_processing_with_env_var_enabled(self):
         """環境変数有効時のMarkdown処理テスト"""
         with unittest.mock.patch.dict(os.environ, {"ENABLE_PDF_EXPORT": "1"}):
-            plugin = MermaidToImagePlugin()
+            plugin = SvgToPngPlugin()
             config = {
                 "enabled_if_env": "ENABLE_PDF_EXPORT",
                 "log_level": "ERROR",
@@ -131,7 +131,7 @@ graph TD
     def test_plugin_markdown_processing_with_env_var_disabled(self):
         """環境変数無効時のMarkdown処理テスト"""
         with unittest.mock.patch.dict(os.environ, {}, clear=True):
-            plugin = MermaidToImagePlugin()
+            plugin = SvgToPngPlugin()
             config = {
                 "enabled_if_env": "ENABLE_PDF_EXPORT",
                 "log_level": "ERROR",
@@ -181,7 +181,7 @@ graph TD
     def test_plugin_post_build_with_env_var_disabled(self):
         """環境変数無効時のpost_build処理テスト"""
         with unittest.mock.patch.dict(os.environ, {}, clear=True):
-            plugin = MermaidToImagePlugin()
+            plugin = SvgToPngPlugin()
             config = {
                 "enabled_if_env": "ENABLE_PDF_EXPORT",
                 "log_level": "ERROR",

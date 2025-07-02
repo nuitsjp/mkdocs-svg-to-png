@@ -8,7 +8,7 @@ import tempfile
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-from mkdocs_mermaid_to_image.logging_config import (
+from mkdocs_svg_to_png.logging_config import (
     StructuredFormatter,
     create_error_context,
     create_performance_context,
@@ -144,7 +144,7 @@ class TestSetupPluginLogging:
 
     def setup_method(self) -> None:
         """Clear any existing handlers before each test."""
-        logger = logging.getLogger("mkdocs_mermaid_to_image")
+        logger = logging.getLogger("mkdocs_svg_to_png")
         logger.handlers.clear()
 
     def test_setup_with_env_variable(self) -> None:
@@ -152,7 +152,7 @@ class TestSetupPluginLogging:
         with patch.dict(os.environ, {"MKDOCS_MERMAID_LOG_LEVEL": "DEBUG"}):
             setup_plugin_logging(level="INFO", force=True)
 
-        logger = logging.getLogger("mkdocs_mermaid_to_image")
+        logger = logging.getLogger("mkdocs_svg_to_png")
         assert logger.level == logging.DEBUG
 
     def test_setup_with_invalid_env_variable(self) -> None:
@@ -160,7 +160,7 @@ class TestSetupPluginLogging:
         with patch.dict(os.environ, {"MKDOCS_MERMAID_LOG_LEVEL": "INVALID"}):
             setup_plugin_logging(level="INFO", force=True)
 
-        logger = logging.getLogger("mkdocs_mermaid_to_image")
+        logger = logging.getLogger("mkdocs_svg_to_png")
         assert logger.level == logging.INFO
 
     def test_setup_with_log_file(self) -> None:
@@ -169,7 +169,7 @@ class TestSetupPluginLogging:
             log_file = Path(temp_dir) / "test.log"
             setup_plugin_logging(log_file=log_file, force=True)
 
-            logger = logging.getLogger("mkdocs_mermaid_to_image")
+            logger = logging.getLogger("mkdocs_svg_to_png")
             assert len(logger.handlers) == 2  # Console + File
             assert log_file.exists()
 
@@ -177,7 +177,7 @@ class TestSetupPluginLogging:
         """Test setup without force skips when handlers exist."""
         # First setup
         setup_plugin_logging(force=True)
-        logger = logging.getLogger("mkdocs_mermaid_to_image")
+        logger = logging.getLogger("mkdocs_svg_to_png")
         initial_handler_count = len(logger.handlers)
 
         # Second setup without force should not add more handlers
@@ -188,7 +188,7 @@ class TestSetupPluginLogging:
         """Test setup with force clears existing handlers."""
         # First setup
         setup_plugin_logging(force=True)
-        logger = logging.getLogger("mkdocs_mermaid_to_image")
+        logger = logging.getLogger("mkdocs_svg_to_png")
 
         # Add an extra handler manually
         extra_handler = logging.StreamHandler()
@@ -301,7 +301,7 @@ class TestUnifiedLoggerFactory:
     def test_get_logger_should_return_consistent_logger_instance(self) -> None:
         """Test that get_logger returns consistent logger instances across modules."""
         # This test should fail initially (RED phase)
-        from mkdocs_mermaid_to_image.logging_config import get_logger
+        from mkdocs_svg_to_png.logging_config import get_logger
 
         logger1 = get_logger("module1")
         logger2 = get_logger("module1")
@@ -314,7 +314,7 @@ class TestUnifiedLoggerFactory:
     def test_get_logger_should_have_proper_type_annotation(self) -> None:
         """Test that get_logger has proper type annotation (not Optional[Any])."""
         # This test should fail initially (RED phase)
-        from mkdocs_mermaid_to_image.logging_config import get_logger
+        from mkdocs_svg_to_png.logging_config import get_logger
 
         logger = get_logger("test_module")
         # Should be logging.Logger, not Optional[Any]
@@ -327,7 +327,7 @@ class TestUnifiedLoggerFactory:
 
         # Check if setup_logger exists in utils module
         try:
-            spec = importlib.util.find_spec("mkdocs_mermaid_to_image.utils")
+            spec = importlib.util.find_spec("mkdocs_svg_to_png.utils")
             if spec is not None and spec.loader is not None:
                 module = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(module)
@@ -344,10 +344,10 @@ class TestUnifiedLoggerFactory:
         # This test should fail initially (RED phase)
 
         # Check that plugin.py uses get_logger instead of setup_logger
-        from mkdocs_mermaid_to_image import plugin
+        from mkdocs_svg_to_png import plugin
 
         # Plugin should have proper logger type
-        plugin_instance = plugin.MermaidToImagePlugin()
+        plugin_instance = plugin.SvgToPngPlugin()
         # This will fail initially because plugin uses Optional[Any]
         if hasattr(plugin_instance, "logger") and plugin_instance.logger is not None:
             assert isinstance(plugin_instance.logger, logging.Logger)

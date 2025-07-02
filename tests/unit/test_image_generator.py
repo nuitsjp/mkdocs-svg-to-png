@@ -26,11 +26,11 @@ try:
 except ImportError:
     PILLOW_AVAILABLE = False
 
-from mkdocs_mermaid_to_image.exceptions import (
+from mkdocs_svg_to_png.exceptions import (
     MermaidCLIError,
     MermaidImageError,
 )
-from mkdocs_mermaid_to_image.image_generator import MermaidImageGenerator
+from mkdocs_svg_to_png.image_generator import MermaidImageGenerator
 
 
 class TestMermaidImageGenerator:
@@ -62,7 +62,7 @@ class TestMermaidImageGenerator:
             "log_level": "INFO",
         }
 
-    @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
+    @patch("mkdocs_svg_to_png.image_generator.is_command_available")
     def test_generator_initialization(self, mock_command_available, basic_config):
         """初期化時のプロパティが正しいかテスト"""
         mock_command_available.return_value = True
@@ -70,7 +70,7 @@ class TestMermaidImageGenerator:
         assert generator.config == basic_config
         assert generator.logger is not None
 
-    @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
+    @patch("mkdocs_svg_to_png.image_generator.is_command_available")
     def test_generator_initialization_missing_cli(
         self, mock_command_available, basic_config
     ):
@@ -79,10 +79,10 @@ class TestMermaidImageGenerator:
         with pytest.raises(MermaidCLIError):
             MermaidImageGenerator(basic_config)
 
-    @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
+    @patch("mkdocs_svg_to_png.image_generator.is_command_available")
     @patch("subprocess.run")
-    @patch("mkdocs_mermaid_to_image.image_generator.get_temp_file_path")
-    @patch("mkdocs_mermaid_to_image.image_generator.clean_temp_file")
+    @patch("mkdocs_svg_to_png.image_generator.get_temp_file_path")
+    @patch("mkdocs_svg_to_png.image_generator.clean_temp_file")
     @patch.dict("os.environ", {"CI": "", "GITHUB_ACTIONS": ""}, clear=True)
     def test_generate_failure_subprocess_error(
         self,
@@ -101,7 +101,7 @@ class TestMermaidImageGenerator:
 
         with (
             patch("builtins.open", create=True),
-            patch("mkdocs_mermaid_to_image.image_generator.ensure_directory"),
+            patch("mkdocs_svg_to_png.image_generator.ensure_directory"),
         ):
             result = generator.generate(
                 "invalid mermaid code", "/tmp/output.png", basic_config
@@ -114,11 +114,11 @@ class TestMermaidImageGenerator:
                 "/tmp/test.mmd" in str(call) for call in mock_clean.call_args_list
             )
 
-    @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
+    @patch("mkdocs_svg_to_png.image_generator.is_command_available")
     @patch("subprocess.run")
     @patch("os.path.exists")
-    @patch("mkdocs_mermaid_to_image.image_generator.get_temp_file_path")
-    @patch("mkdocs_mermaid_to_image.image_generator.clean_temp_file")
+    @patch("mkdocs_svg_to_png.image_generator.get_temp_file_path")
+    @patch("mkdocs_svg_to_png.image_generator.clean_temp_file")
     @patch.dict("os.environ", {"CI": "", "GITHUB_ACTIONS": ""}, clear=True)
     def test_generate_failure_no_output_file(
         self,
@@ -139,7 +139,7 @@ class TestMermaidImageGenerator:
 
         with (
             patch("builtins.open", create=True),
-            patch("mkdocs_mermaid_to_image.image_generator.ensure_directory"),
+            patch("mkdocs_svg_to_png.image_generator.ensure_directory"),
         ):
             result = generator.generate(
                 "graph TD\n A --> B", "/tmp/output.png", basic_config
@@ -152,10 +152,10 @@ class TestMermaidImageGenerator:
                 "/tmp/test.mmd" in str(call) for call in mock_clean.call_args_list
             )
 
-    @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
+    @patch("mkdocs_svg_to_png.image_generator.is_command_available")
     @patch("subprocess.run")
-    @patch("mkdocs_mermaid_to_image.image_generator.get_temp_file_path")
-    @patch("mkdocs_mermaid_to_image.image_generator.clean_temp_file")
+    @patch("mkdocs_svg_to_png.image_generator.get_temp_file_path")
+    @patch("mkdocs_svg_to_png.image_generator.clean_temp_file")
     @patch.dict("os.environ", {"CI": "", "GITHUB_ACTIONS": ""}, clear=True)
     def test_generate_timeout(
         self,
@@ -174,7 +174,7 @@ class TestMermaidImageGenerator:
 
         with (
             patch("builtins.open", create=True),
-            patch("mkdocs_mermaid_to_image.image_generator.ensure_directory"),
+            patch("mkdocs_svg_to_png.image_generator.ensure_directory"),
         ):
             result = generator.generate(
                 "graph TD\n A --> B", "/tmp/output.png", basic_config
@@ -187,7 +187,7 @@ class TestMermaidImageGenerator:
                 "/tmp/test.mmd" in str(call) for call in mock_clean.call_args_list
             )
 
-    @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
+    @patch("mkdocs_svg_to_png.image_generator.is_command_available")
     def test_build_mmdc_command_basic(self, mock_command_available, basic_config):
         """mmdcコマンド生成の基本テスト"""
         mock_command_available.return_value = True
@@ -211,7 +211,7 @@ class TestMermaidImageGenerator:
         assert "-s" in cmd
         assert "1.0" in cmd
 
-    @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
+    @patch("mkdocs_svg_to_png.image_generator.is_command_available")
     def test_build_mmdc_command_with_overrides(
         self, mock_command_available, basic_config
     ):
@@ -237,7 +237,7 @@ class TestMermaidImageGenerator:
         assert "-H" in cmd
         assert "800" in cmd
 
-    @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
+    @patch("mkdocs_svg_to_png.image_generator.is_command_available")
     def test_build_mmdc_command_with_optional_files(
         self, mock_command_available, basic_config, tmp_path
     ):
@@ -270,7 +270,7 @@ class TestMermaidImageGenerator:
         assert "-c" in cmd
         assert str(mermaid_file) in cmd
 
-    @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
+    @patch("mkdocs_svg_to_png.image_generator.is_command_available")
     @patch("os.getenv")
     def test_build_mmdc_command_with_missing_optional_files(
         self, mock_getenv, mock_command_available, basic_config
@@ -305,7 +305,7 @@ class TestMermaidImageGenerator:
         assert "-c" in cmd
         assert "/nonexistent/mermaid.json" in cmd
 
-    @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
+    @patch("mkdocs_svg_to_png.image_generator.is_command_available")
     @patch("os.getenv")
     def test_build_mmdc_command_ci_environment(
         self, mock_getenv, mock_command_available, basic_config
@@ -329,7 +329,7 @@ class TestMermaidImageGenerator:
         assert "-p" in cmd
         # Check that the puppeteer config file is created
 
-    @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
+    @patch("mkdocs_svg_to_png.image_generator.is_command_available")
     @patch("os.getenv")
     def test_build_mmdc_command_github_actions_environment(
         self, mock_getenv, mock_command_available, basic_config
@@ -353,7 +353,7 @@ class TestMermaidImageGenerator:
         assert "-p" in cmd
         # Check that the puppeteer config file is created
 
-    @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
+    @patch("mkdocs_svg_to_png.image_generator.is_command_available")
     @patch("os.getenv")
     def test_build_mmdc_command_non_ci_environment(
         self, mock_getenv, mock_command_available, basic_config
@@ -369,7 +369,7 @@ class TestMermaidImageGenerator:
 
         # In non-CI environment, no additional -p flag should be added for sandbox
 
-    @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
+    @patch("mkdocs_svg_to_png.image_generator.is_command_available")
     def test_generate_with_error_on_fail_true(
         self, mock_command_available, basic_config, tmp_path
     ):
@@ -388,16 +388,16 @@ class TestMermaidImageGenerator:
             with (
                 patch("builtins.open", create=True),
                 patch(
-                    "mkdocs_mermaid_to_image.image_generator.get_temp_file_path"
+                    "mkdocs_svg_to_png.image_generator.get_temp_file_path"
                 ) as mock_temp_path,
-                patch("mkdocs_mermaid_to_image.image_generator.ensure_directory"),
-                patch("mkdocs_mermaid_to_image.image_generator.clean_temp_file"),
+                patch("mkdocs_svg_to_png.image_generator.ensure_directory"),
+                patch("mkdocs_svg_to_png.image_generator.clean_temp_file"),
                 pytest.raises(MermaidCLIError),
             ):
                 mock_temp_path.return_value = str(temp_file)
                 generator.generate("invalid", "/tmp/output.png", basic_config)
 
-    @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
+    @patch("mkdocs_svg_to_png.image_generator.is_command_available")
     def test_generate_with_missing_output_file_error_on_fail_true(
         self, mock_command_available, basic_config, tmp_path
     ):
@@ -413,10 +413,10 @@ class TestMermaidImageGenerator:
         with (
             patch("subprocess.run") as mock_subprocess,
             patch(
-                "mkdocs_mermaid_to_image.image_generator.get_temp_file_path"
+                "mkdocs_svg_to_png.image_generator.get_temp_file_path"
             ) as mock_temp_path,
-            patch("mkdocs_mermaid_to_image.image_generator.ensure_directory"),
-            patch("mkdocs_mermaid_to_image.image_generator.clean_temp_file"),
+            patch("mkdocs_svg_to_png.image_generator.ensure_directory"),
+            patch("mkdocs_svg_to_png.image_generator.clean_temp_file"),
             patch("os.path.exists") as mock_exists,
         ):
             mock_subprocess.return_value = Mock(returncode=0, stderr="")
@@ -426,7 +426,7 @@ class TestMermaidImageGenerator:
             with pytest.raises(MermaidImageError, match="Image not created"):
                 generator.generate("graph TD\nA-->B", "/tmp/output.png", basic_config)
 
-    @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
+    @patch("mkdocs_svg_to_png.image_generator.is_command_available")
     def test_generate_with_timeout_error_on_fail_true(
         self, mock_command_available, basic_config, tmp_path
     ):
@@ -442,10 +442,10 @@ class TestMermaidImageGenerator:
         with (
             patch("subprocess.run") as mock_subprocess,
             patch(
-                "mkdocs_mermaid_to_image.image_generator.get_temp_file_path"
+                "mkdocs_svg_to_png.image_generator.get_temp_file_path"
             ) as mock_temp_path,
-            patch("mkdocs_mermaid_to_image.image_generator.ensure_directory"),
-            patch("mkdocs_mermaid_to_image.image_generator.clean_temp_file"),
+            patch("mkdocs_svg_to_png.image_generator.ensure_directory"),
+            patch("mkdocs_svg_to_png.image_generator.clean_temp_file"),
         ):
             mock_subprocess.side_effect = subprocess.TimeoutExpired("mmdc", 30)
             mock_temp_path.return_value = str(temp_file)
@@ -453,7 +453,7 @@ class TestMermaidImageGenerator:
             with pytest.raises(MermaidCLIError, match="timed out"):
                 generator.generate("graph TD\nA-->B", "/tmp/output.png", basic_config)
 
-    @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
+    @patch("mkdocs_svg_to_png.image_generator.is_command_available")
     def test_generate_with_general_exception_error_on_fail_true(
         self, mock_command_available, basic_config, tmp_path
     ):
@@ -469,10 +469,10 @@ class TestMermaidImageGenerator:
         with (
             patch("subprocess.run") as mock_subprocess,
             patch(
-                "mkdocs_mermaid_to_image.image_generator.get_temp_file_path"
+                "mkdocs_svg_to_png.image_generator.get_temp_file_path"
             ) as mock_temp_path,
-            patch("mkdocs_mermaid_to_image.image_generator.ensure_directory"),
-            patch("mkdocs_mermaid_to_image.image_generator.clean_temp_file"),
+            patch("mkdocs_svg_to_png.image_generator.ensure_directory"),
+            patch("mkdocs_svg_to_png.image_generator.clean_temp_file"),
         ):
             mock_subprocess.side_effect = Exception("Unexpected error")
             mock_temp_path.return_value = str(temp_file)
@@ -489,11 +489,11 @@ class TestMermaidImageGenerator:
             ("sample_sequence.mmd", "output_sequence.png"),
         ],
     )
-    @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
+    @patch("mkdocs_svg_to_png.image_generator.is_command_available")
     @patch("subprocess.run")
-    @patch("mkdocs_mermaid_to_image.image_generator.get_temp_file_path")
-    @patch("mkdocs_mermaid_to_image.image_generator.clean_temp_file")
-    @patch("mkdocs_mermaid_to_image.image_generator.ensure_directory")
+    @patch("mkdocs_svg_to_png.image_generator.get_temp_file_path")
+    @patch("mkdocs_svg_to_png.image_generator.clean_temp_file")
+    @patch("mkdocs_svg_to_png.image_generator.ensure_directory")
     @patch("os.path.exists")
     def test_generate_mermaid_image_and_compare(
         self,
@@ -685,11 +685,11 @@ class TestMermaidImageGenerator:
             ("sample_sequence.mmd", "output_sequence.svg"),
         ],
     )
-    @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
+    @patch("mkdocs_svg_to_png.image_generator.is_command_available")
     @patch("subprocess.run")
-    @patch("mkdocs_mermaid_to_image.image_generator.get_temp_file_path")
-    @patch("mkdocs_mermaid_to_image.image_generator.clean_temp_file")
-    @patch("mkdocs_mermaid_to_image.image_generator.ensure_directory")
+    @patch("mkdocs_svg_to_png.image_generator.get_temp_file_path")
+    @patch("mkdocs_svg_to_png.image_generator.clean_temp_file")
+    @patch("mkdocs_svg_to_png.image_generator.ensure_directory")
     @patch("os.path.exists")
     def test_generate_mermaid_svg_and_compare(
         self,
@@ -784,11 +784,11 @@ class TestMermaidImageGenerator:
             assert "not a valid svg" in msg.lower()
 
     @pytest.mark.parametrize("theme", ["default", "dark", "forest", "neutral"])
-    @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
+    @patch("mkdocs_svg_to_png.image_generator.is_command_available")
     @patch("subprocess.run")
-    @patch("mkdocs_mermaid_to_image.image_generator.get_temp_file_path")
-    @patch("mkdocs_mermaid_to_image.image_generator.clean_temp_file")
-    @patch("mkdocs_mermaid_to_image.image_generator.ensure_directory")
+    @patch("mkdocs_svg_to_png.image_generator.get_temp_file_path")
+    @patch("mkdocs_svg_to_png.image_generator.clean_temp_file")
+    @patch("mkdocs_svg_to_png.image_generator.ensure_directory")
     @patch("os.path.exists")
     def test_svg_generation_with_different_themes(
         self,

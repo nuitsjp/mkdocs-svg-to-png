@@ -21,7 +21,7 @@ from .processor import MermaidProcessor
 from .utils import clean_generated_images
 
 
-class MermaidToImagePlugin(BasePlugin):  # type: ignore[type-arg,no-untyped-call]
+class SvgToPngPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped-call]
     config_scheme = ConfigManager.get_config_scheme()
 
     def __init__(self) -> None:

@@ -1,6 +1,6 @@
 """Test minimal configuration functionality."""
 
-from mkdocs_mermaid_to_image.plugin import MermaidToImagePlugin
+from mkdocs_svg_to_png.plugin import SvgToPngPlugin
 
 
 class TestMinimalConfig:
@@ -8,7 +8,7 @@ class TestMinimalConfig:
 
     def test_最小構成での初期化成功(self):
         """プラグインが最小構成で初期化できることを確認。"""
-        plugin = MermaidToImagePlugin()
+        plugin = SvgToPngPlugin()
 
         # MkDocsのconfig_optionsを使って設定を検証
         # 実際の設定値がデフォルト値で補完されることを確認
@@ -25,7 +25,7 @@ class TestMinimalConfig:
 
     def test_enabled_デフォルトTrue_で動作(self):
         """enabled オプション未指定時にTrueになることを確認。"""
-        plugin = MermaidToImagePlugin()
+        plugin = SvgToPngPlugin()
 
         # enabled設定を確認
         enabled_config = None
@@ -39,7 +39,7 @@ class TestMinimalConfig:
 
     def test_必須設定項目以外は全てデフォルト値を持つ(self):
         """必須設定項目以外は全てデフォルト値を持ち、最小構成で動作することを確認。"""
-        plugin = MermaidToImagePlugin()
+        plugin = SvgToPngPlugin()
 
         # 各設定項目がデフォルト値を持つかチェック
         has_defaults = {}
@@ -72,7 +72,7 @@ class TestMinimalConfig:
 
     def test_オプショナル設定はデフォルトNoneまたは空文字(self):
         """オプショナルな設定項目はデフォルトでNoneまたは空文字で問題なく動作することを確認。"""
-        plugin = MermaidToImagePlugin()
+        plugin = SvgToPngPlugin()
 
         # オプショナル設定項目
         optional_settings = [
@@ -95,7 +95,7 @@ class TestMinimalConfig:
 
     def test_最小設定での設定検証通過(self):
         """最小設定で設定検証が通過することを確認。"""
-        from mkdocs_mermaid_to_image.config import ConfigManager
+        from mkdocs_svg_to_png.config import ConfigManager
 
         # 最小設定（必須項目のみデフォルト値）
         minimal_config = {

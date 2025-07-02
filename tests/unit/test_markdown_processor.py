@@ -12,9 +12,9 @@ from unittest.mock import Mock
 
 import pytest
 
-from mkdocs_mermaid_to_image.exceptions import MermaidParsingError
-from mkdocs_mermaid_to_image.markdown_processor import MarkdownProcessor
-from mkdocs_mermaid_to_image.mermaid_block import MermaidBlock
+from mkdocs_svg_to_png.exceptions import MermaidParsingError
+from mkdocs_svg_to_png.markdown_processor import MarkdownProcessor
+from mkdocs_svg_to_png.mermaid_block import MermaidBlock
 
 
 class TestMarkdownProcessor:

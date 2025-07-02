@@ -3,15 +3,15 @@ requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
 
 [project]
-name = "mkdocs-mermaid-to-image"
-description = "MkDocs plugin to preprocess Mermaid diagrams into static images"
+name = "mkdocs-svg-to-png"
+description = "MkDocs plugin to convert SVG files to PNG images during build"
 readme = "README.md"
 requires-python = ">=3.9"
 license = {text = "MIT"}
 authors = [
     {name = "nuitsjp"},
 ]
-keywords = ["mkdocs", "mermaid", "diagram", "preprocessing", "static-generation"]
+keywords = ["mkdocs", "svg", "png", "image-conversion", "static-generation"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
@@ -27,9 +27,7 @@ classifiers = [
 dynamic = ["version"]
 dependencies = [
     "mkdocs>=1.4.0",
-    "mkdocs-material>=8.0.0",
-    "pillow>=11.3.0",
-    "numpy>=1.20.0",
+    "cairosvg>=2.7.0",
 ]
 
 [project.optional-dependencies]
@@ -55,22 +53,22 @@ docs = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/nuitsjp/mkdocs-mermaid-to-image"
-"Bug Reports" = "https://github.com/nuitsjp/mkdocs-mermaid-to-image/issues"
-Source = "https://github.com/nuitsjp/mkdocs-mermaid-to-image"
+Homepage = "https://github.com/nuitsjp/mkdocs-svg-to-png"
+"Bug Reports" = "https://github.com/nuitsjp/mkdocs-svg-to-png/issues"
+Source = "https://github.com/nuitsjp/mkdocs-svg-to-png"
 
 [project.entry-points."mkdocs.plugins"]
-mermaid-to-image = "mkdocs_mermaid_to_image.plugin:MermaidToImagePlugin"
+svg-to-png = "mkdocs_svg_to_png.plugin:SvgToPngPlugin"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/mkdocs_mermaid_to_image"]
+packages = ["src/mkdocs_svg_to_png"]
 
 [tool.hatch.version]
 source = "vcs"
 raw-options = { local_scheme = "no-local-version" }
 
 [tool.hatch.build.hooks.vcs]
-version-file = "src/mkdocs_mermaid_to_image/_version.py"
+version-file = "src/mkdocs_svg_to_png/_version.py"
 
 [tool.ruff]
 line-length = 88
@@ -108,7 +106,7 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["PLR2004", "PLR0913", "S101", "PLC0415"]
-"src/mkdocs_mermaid_to_image/_version.py" = ["UP006", "UP035", "I001"]
+"src/mkdocs_svg_to_png/_version.py" = ["UP006", "UP035", "I001"]
 
 [tool.mypy]
 python_version = "3.11"
@@ -142,7 +140,7 @@ addopts = [
     "-ra",
     "--strict-markers",
     "--strict-config",
-    "--cov=src/mkdocs_mermaid_to_image",
+    "--cov=src/mkdocs_svg_to_png",
     "--cov-report=term-missing",
     "--cov-report=html",
 ]
@@ -152,10 +150,10 @@ markers = [
 ]
 
 [tool.uv.sources]
-mkdocs-mermaid-to-image = { workspace = true }
+mkdocs-svg-to-png = { workspace = true }
 
 [dependency-groups]
 dev = [
-    "mkdocs-mermaid-to-image",
+    "mkdocs-svg-to-png",
     "pytest-benchmark>=5.1.0",
 ]

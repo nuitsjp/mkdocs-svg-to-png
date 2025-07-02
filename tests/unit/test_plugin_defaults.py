@@ -1,6 +1,6 @@
 """Test plugin default configuration behavior."""
 
-from mkdocs_mermaid_to_image.plugin import MermaidToImagePlugin
+from mkdocs_svg_to_png.plugin import SvgToPngPlugin
 
 
 class TestPluginDefaults:
@@ -8,7 +8,7 @@ class TestPluginDefaults:
 
     def test_デフォルト設定でプラグインを初期化できる(self):
         """プラグインが最小構成で初期化できることを確認。"""
-        plugin = MermaidToImagePlugin()
+        plugin = SvgToPngPlugin()
 
         # MkDocsプラグインのconfig_schemeが存在することを確認
         assert hasattr(plugin, "config_scheme")
@@ -20,7 +20,7 @@ class TestPluginDefaults:
 
     def test_enabled_のデフォルト値がTrueである(self):
         """enabled オプションのデフォルト値が True であることを確認。"""
-        plugin = MermaidToImagePlugin()
+        plugin = SvgToPngPlugin()
 
         # config_schemeから enabled の設定を検索
         enabled_config = None
@@ -34,7 +34,7 @@ class TestPluginDefaults:
 
     def test_すべてのオプションがデフォルト値を持つ(self):
         """全てのオプションが適切なデフォルト値を持つことを確認。"""
-        plugin = MermaidToImagePlugin()
+        plugin = SvgToPngPlugin()
 
         # 必須でないオプション（デフォルト値が必要）のリスト
         expected_defaults = {
@@ -71,7 +71,7 @@ class TestPluginDefaults:
 
     def test_オプショナル設定がNoneをデフォルトとする(self):
         """オプショナルな設定項目が適切にNoneをデフォルトとすることを確認。"""
-        plugin = MermaidToImagePlugin()
+        plugin = SvgToPngPlugin()
 
         # オプショナルな設定項目（Noneまたは空文字がデフォルト）
         optional_configs = [

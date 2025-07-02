@@ -12,9 +12,9 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from mkdocs_mermaid_to_image.exceptions import MermaidCLIError
-from mkdocs_mermaid_to_image.mermaid_block import MermaidBlock
-from mkdocs_mermaid_to_image.processor import MermaidProcessor
+from mkdocs_svg_to_png.exceptions import MermaidCLIError
+from mkdocs_svg_to_png.mermaid_block import MermaidBlock
+from mkdocs_svg_to_png.processor import MermaidProcessor
 
 
 class TestMermaidProcessor:
@@ -42,7 +42,7 @@ class TestMermaidProcessor:
             "log_level": "INFO",
         }
 
-    @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
+    @patch("mkdocs_svg_to_png.image_generator.is_command_available")
     def test_processor_initialization(self, mock_command_available, basic_config):
         """MermaidProcessorの初期化が正しく行われるかテスト"""
         mock_command_available.return_value = True
@@ -52,7 +52,7 @@ class TestMermaidProcessor:
         assert processor.markdown_processor is not None
         assert processor.image_generator is not None
 
-    @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
+    @patch("mkdocs_svg_to_png.image_generator.is_command_available")
     def test_processor_initialization_missing_cli(
         self, mock_command_available, basic_config
     ):
@@ -61,7 +61,7 @@ class TestMermaidProcessor:
         with pytest.raises(MermaidCLIError):
             MermaidProcessor(basic_config)
 
-    @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
+    @patch("mkdocs_svg_to_png.image_generator.is_command_available")
     def test_process_page_with_blocks(self, mock_command_available, basic_config):
         """Mermaidブロックがある場合のページ処理をテスト"""
         mock_command_available.return_value = True
@@ -97,7 +97,7 @@ graph TD
         mock_block.generate_image.assert_called_once()
         mock_block.get_filename.assert_called_once_with("test.md", 0, "png")
 
-    @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
+    @patch("mkdocs_svg_to_png.image_generator.is_command_available")
     def test_process_page_no_blocks(self, mock_command_available, basic_config):
         """Mermaidブロックがない場合は元の内容が返るかテスト"""
         mock_command_available.return_value = True
@@ -119,7 +119,7 @@ print("Hello")
         assert result_content == markdown
         assert len(result_paths) == 0
 
-    @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
+    @patch("mkdocs_svg_to_png.image_generator.is_command_available")
     def test_process_page_with_generation_failure(
         self, mock_command_available, basic_config
     ):

@@ -5,10 +5,10 @@ MkDocs Mermaid to Image Plugin - 統合機能テストスクリプト
 import sys
 from unittest.mock import Mock, patch
 
-from mkdocs_mermaid_to_image.config import ConfigManager
-from mkdocs_mermaid_to_image.plugin import MermaidToImagePlugin
-from mkdocs_mermaid_to_image.processor import MermaidProcessor
-from mkdocs_mermaid_to_image.utils import (
+from mkdocs_svg_to_png.config import ConfigManager
+from mkdocs_svg_to_png.plugin import SvgToPngPlugin
+from mkdocs_svg_to_png.processor import MermaidProcessor
+from mkdocs_svg_to_png.utils import (
     generate_image_filename,
     is_command_available,
 )
@@ -16,7 +16,7 @@ from mkdocs_mermaid_to_image.utils import (
 
 def test_plugin_initialization():
     """プラグインの初期化テスト"""
-    plugin = MermaidToImagePlugin()
+    plugin = SvgToPngPlugin()
     assert plugin is not None
 
 
@@ -92,7 +92,7 @@ def test_serve_mode_integration():
     # Test 1: serve モードでの完全なワークフロー
     with patch.object(sys, "argv", ["mkdocs", "serve"]):
         # プラグイン初期化
-        plugin = MermaidToImagePlugin()
+        plugin = SvgToPngPlugin()
         assert plugin.is_serve_mode is True
 
         # 設定を模擬
@@ -169,7 +169,7 @@ def test_build_mode_integration():
     # Test 2: build モードでの完全なワークフロー
     with patch.object(sys, "argv", ["mkdocs", "build"]):
         # プラグイン初期化
-        plugin = MermaidToImagePlugin()
+        plugin = SvgToPngPlugin()
         assert plugin.is_serve_mode is False
 
         # 設定を模擬
@@ -252,19 +252,19 @@ def test_mixed_command_scenarios():
 
     # gh-deploy コマンド
     with patch.object(sys, "argv", ["mkdocs", "gh-deploy", "--force"]):
-        plugin = MermaidToImagePlugin()
+        plugin = SvgToPngPlugin()
         assert plugin.is_serve_mode is False
 
     # serve コマンド（詳細オプション付き）
     with patch.object(
         sys, "argv", ["mkdocs", "serve", "--dev-addr", "0.0.0.0:8000", "--livereload"]
     ):
-        plugin = MermaidToImagePlugin()
+        plugin = SvgToPngPlugin()
         assert plugin.is_serve_mode is True
 
     # build コマンド（クリーンオプション付き）
     with patch.object(sys, "argv", ["mkdocs", "build", "--clean"]):
-        plugin = MermaidToImagePlugin()
+        plugin = SvgToPngPlugin()
         assert plugin.is_serve_mode is False
 
 
@@ -272,7 +272,7 @@ def test_serve_mode_performance_optimization():
     """serve モードでのパフォーマンス最適化効果の検証"""
 
     with patch.object(sys, "argv", ["mkdocs", "serve"]):
-        plugin = MermaidToImagePlugin()
+        plugin = SvgToPngPlugin()
         plugin.config = {"enabled": True}
         plugin.processor = Mock()
         plugin.logger = Mock()

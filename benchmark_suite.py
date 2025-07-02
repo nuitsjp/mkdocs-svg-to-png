@@ -1,5 +1,5 @@
-import pytest
 from project_name.utils.helpers import chunk_list
+
 
 def test_chunk_list_benchmark(benchmark):
     data = list(range(1000))

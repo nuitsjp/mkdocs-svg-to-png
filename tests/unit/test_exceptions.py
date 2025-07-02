@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from mkdocs_mermaid_to_image.exceptions import (
+from mkdocs_svg_to_png.exceptions import (
     MermaidCLIError,
     MermaidConfigError,
     MermaidParsingError,

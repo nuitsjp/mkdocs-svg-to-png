@@ -9,10 +9,10 @@ class TestMinimalMkDocsConfig:
 
     def test_最小構成mkdocs_yml_でプラグイン動作(self):
         """plugins: [mermaid-to-image] だけの設定でプラグインが動作することを確認。"""
-        from mkdocs_mermaid_to_image.plugin import MermaidToImagePlugin
+        from mkdocs_svg_to_png.plugin import SvgToPngPlugin
 
         # プラグインインスタンスを作成
-        plugin = MermaidToImagePlugin()
+        plugin = SvgToPngPlugin()
 
         # プラグインconfig にデフォルト値が設定されることをシミュレート
         # これは実際にはMkDocsが config_scheme を元に自動設定する
@@ -45,9 +45,9 @@ class TestMinimalMkDocsConfig:
 
     def test_最小構成でon_config_が成功する(self):
         """最小構成でon_configフックが成功することを確認。"""
-        from mkdocs_mermaid_to_image.plugin import MermaidToImagePlugin
+        from mkdocs_svg_to_png.plugin import SvgToPngPlugin
 
-        plugin = MermaidToImagePlugin()
+        plugin = SvgToPngPlugin()
 
         # デフォルト設定を適用
         plugin.config = {}
@@ -66,8 +66,8 @@ class TestMinimalMkDocsConfig:
 
             # プロセッサ初期化をモック
             with (
-                patch("mkdocs_mermaid_to_image.plugin.MermaidProcessor"),
-                patch("mkdocs_mermaid_to_image.plugin.get_logger"),
+                patch("mkdocs_svg_to_png.plugin.MermaidProcessor"),
+                patch("mkdocs_svg_to_png.plugin.get_logger"),
             ):
                 # on_config が正常に実行されることを確認
                 result = plugin.on_config(mock_mkdocs_config)
@@ -77,10 +77,10 @@ class TestMinimalMkDocsConfig:
 
     def test_デフォルト値でconfig_validation_が通過する(self):
         """デフォルト値で設定検証が通過することを確認。"""
-        from mkdocs_mermaid_to_image.config import ConfigManager
-        from mkdocs_mermaid_to_image.plugin import MermaidToImagePlugin
+        from mkdocs_svg_to_png.config import ConfigManager
+        from mkdocs_svg_to_png.plugin import SvgToPngPlugin
 
-        plugin = MermaidToImagePlugin()
+        plugin = SvgToPngPlugin()
 
         # デフォルト設定を適用
         plugin.config = {}
@@ -119,9 +119,9 @@ plugins:
 
     def test_全てのオプションにデフォルト値またはオプショナル設定(self):
         """全ての設定項目がデフォルト値を持つかオプショナル設定であることを確認。"""
-        from mkdocs_mermaid_to_image.plugin import MermaidToImagePlugin
+        from mkdocs_svg_to_png.plugin import SvgToPngPlugin
 
-        plugin = MermaidToImagePlugin()
+        plugin = SvgToPngPlugin()
 
         missing_defaults = []
 
