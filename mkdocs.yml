@@ -21,28 +21,17 @@ markdown_extensions:
 
 plugins:
   - search
-  # ステップ1: MermaidからSVGに変換
-  - mermaid-to-image
-  # ステップ2: SVGからPNGに変換（PDF出力時のみ）
+  - mermaid-to-image:
+      # 環境変数ENABLE_PDF_EXPORTが設定されている場合のみプラグインを有効化
+      enabled_if_env: ENABLE_PDF_EXPORT
   - svg-to-png:
       enabled_if_env: ENABLE_PDF_EXPORT
-      output_format: png
-      dpi: 300
-      quality: 95
-      background_color: "transparent"
-      cache_enabled: true
-      cache_dir: ".svg_cache"
-      preserve_original: false
-      error_on_fail: false
-      log_level: "INFO"
-      cleanup_generated_images: false
-      temp_dir: null
   - to-pdf:
       enabled_if_env: ENABLE_PDF_EXPORT
-      cover_subtitle: 'MkDocs SVG to PNG'
+      cover_subtitle: 'MkDocs Mermaid to Image'
       toc_title: 目次
       toc_level: 3
-      output_path: MkDocs-SVG-to-PNG.pdf
+      output_path: MkDocs-Mermaid-to-Image.pdf
 
 nav:
   - Home: index.md
