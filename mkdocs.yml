@@ -6,6 +6,12 @@ theme:
   name: material
   language: ja
 
+extra_css:
+  - stylesheets/pdf-fixes.css
+
+extra_javascript:
+  - https://unpkg.com/mermaid/dist/mermaid.min.js
+
 markdown_extensions:
   - admonition
   - pymdownx.details
