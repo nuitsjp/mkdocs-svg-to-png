@@ -160,9 +160,11 @@ print("Hello")
         assets_dir.mkdir(parents=True)
 
         # SVGファイルを作成
-        svg_content = """<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300">
-            <rect width="100" height="100" fill="red"/>
-        </svg>"""
+        svg_content = (
+            '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300">'
+            '<rect width="100" height="100" fill="red"/>'
+            "</svg>"
+        )
         svg_file = assets_dir / "architecture_mermaid_0_abc123.svg"
         svg_file.write_text(svg_content)
 
@@ -201,9 +203,11 @@ print("Hello")
         assets_dir.mkdir(parents=True)
 
         # SVGファイルを作成
-        svg_content = """<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300">
-            <rect width="100" height="100" fill="red"/>
-        </svg>"""
+        svg_content = (
+            '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300">'
+            '<rect width="100" height="100" fill="red"/>'
+            "</svg>"
+        )
         svg_file = assets_dir / "architecture_mermaid_0_abc123.svg"
         svg_file.write_text(svg_content)
 

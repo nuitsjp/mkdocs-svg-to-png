@@ -143,7 +143,10 @@ class TestSvgToPngConverter:
         assert exc_info.value.details["file_path"] == svg_path
 
     def test_convert_svg_file_with_relative_path_mkdocs_context(self, tmp_path):
-        """Test SVG file conversion with relative path in MkDocs context (should fail without base_path)."""
+        """Test SVG file conversion with relative path in MkDocs context.
+
+        This should fail without base_path.
+        """
         # MkDocsコンテキストでの相対パス変換をテスト
         config = {
             "output_dir": "assets/images",
@@ -164,16 +167,19 @@ class TestSvgToPngConverter:
         assets_dir.mkdir(parents=True)
 
         # SVGファイルを作成
-        svg_content = """<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300">
-            <rect width="100" height="100" fill="red"/>
-        </svg>"""
+        svg_content = (
+            '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300">'
+            '<rect width="100" height="100" fill="red"/>'
+            "</svg>"
+        )
         svg_file = assets_dir / "test_mermaid_0_abc123.svg"
         svg_file.write_text(svg_content)
 
         # プロジェクトルートで作業（MkDocsの動作と同じ）
         import os
+        from pathlib import Path
 
-        original_cwd = os.getcwd()
+        original_cwd = Path.cwd()
         try:
             os.chdir(project_root)
 
