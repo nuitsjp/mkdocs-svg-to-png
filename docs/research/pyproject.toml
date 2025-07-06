@@ -1,0 +1,19 @@
+[project]
+name = "svg-to-png"
+version = "0.1.0"
+description = "Convert SVG files to PNG format using cairosvg"
+authors = [
+    {name = "NuitsLabo", email = ""}
+]
+dependencies = [
+    "cairosvg>=2.7.0",
+    "playwright>=1.40.0",
+]
+requires-python = ">=3.8"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv]
+dev-dependencies = []
