@@ -33,7 +33,7 @@ class SvgProcessor:
         for i, block in enumerate(blocks):
             try:
                 image_filename = block.get_filename(
-                    page_file, i, self.config["image_format"]
+                    page_file, i, self.config["output_format"]
                 )
                 image_path = Path(output_dir) / image_filename
 

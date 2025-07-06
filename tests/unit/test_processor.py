@@ -19,7 +19,7 @@ class TestSvgProcessor:
         """テスト用の基本設定を返すfixture"""
         return {
             "output_dir": "assets/images",
-            "image_format": "png",
+            "output_format": "png",
             "preserve_original": False,
             "error_on_fail": False,
             "log_level": "INFO",
