@@ -128,7 +128,7 @@ print("Hello")
         )
 
         markdown = """# Test Mermaid Reference
-        
+
 ![Mermaid Diagram](../assets/images/test_mermaid_0_abc123.svg)
 """
         result_content, result_paths = processor.process_page(
@@ -152,33 +152,31 @@ print("Hello")
             "quality": 90,
         }
         processor = SvgProcessor(config)
-        
+
         # MkDocsのようなディレクトリ構造
         docs_dir = tmp_path / "docs"
         docs_dir.mkdir()
         assets_dir = docs_dir / "assets" / "images"
         assets_dir.mkdir(parents=True)
-        
+
         # SVGファイルを作成
         svg_content = """<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300">
             <rect width="100" height="100" fill="red"/>
         </svg>"""
         svg_file = assets_dir / "architecture_mermaid_0_abc123.svg"
         svg_file.write_text(svg_content)
-        
+
         # Mermaidプラグインで生成されるようなMarkdown
         markdown = """# Architecture
-        
+
 ![Mermaid Diagram](assets/images/architecture_mermaid_0_abc123.svg)
 """
-        
+
         # 現在の実装では相対パス解決に失敗するはず
         result_content, result_paths = processor.process_page(
-            "architecture.md", 
-            markdown, 
-            str(assets_dir)
+            "architecture.md", markdown, str(assets_dir)
         )
-        
+
         # 変換に失敗してオリジナルのMarkdownが返るはず
         assert result_content == markdown
         assert len(result_paths) == 0
@@ -195,38 +193,38 @@ print("Hello")
             "quality": 90,
         }
         processor = SvgProcessor(config)
-        
+
         # MkDocsのようなディレクトリ構造
         docs_dir = tmp_path / "docs"
         docs_dir.mkdir()
         assets_dir = docs_dir / "assets" / "images"
         assets_dir.mkdir(parents=True)
-        
+
         # SVGファイルを作成
         svg_content = """<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300">
             <rect width="100" height="100" fill="red"/>
         </svg>"""
         svg_file = assets_dir / "architecture_mermaid_0_abc123.svg"
         svg_file.write_text(svg_content)
-        
+
         # Mermaidプラグインで生成されるようなMarkdown
         markdown = """# Architecture
-        
+
 ![Mermaid Diagram](assets/images/architecture_mermaid_0_abc123.svg)
 """
-        
+
         # process_pageにdocs_dirを渡すことで成功するはず
         result_content, result_paths = processor.process_page(
-            "architecture.md", 
-            markdown, 
+            "architecture.md",
+            markdown,
             str(assets_dir),
-            docs_dir=str(docs_dir)  # docs_dirを渡す
+            docs_dir=str(docs_dir),  # docs_dirを渡す
         )
-        
+
         # SVGからPNGへの変換が成功し、画像パスが返るはず
         assert len(result_paths) == 1
         assert result_content != markdown  # Markdownが変更されているはず
-        
+
         # 生成されたPNGファイルが存在することを確認
         generated_png_path = Path(result_paths[0])
         assert generated_png_path.exists()

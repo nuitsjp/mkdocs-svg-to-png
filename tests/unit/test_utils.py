@@ -49,6 +49,37 @@ class TestUtilityFunctions:
         assert filename.endswith(".svg")
         assert "_svg_1_" in filename
 
+    def test_generate_image_filename_with_svg_file_path(self):
+        """SVGファイルパスを含む場合、.svgが.pngに置き換えられるかテスト"""
+        # SVGファイルパスを含むコンテンツ
+        svg_content = "assets/images/diagram.svg"
+        filename = generate_image_filename("test.md", 0, svg_content, "png")
+
+        # ファイル名にSVGファイル名の情報が含まれることを確認
+        assert "diagram" in filename
+        assert filename.endswith(".png")
+        # SVGファイルパスの場合、特別な処理が行われることを確認
+        assert "_svg_0_" in filename
+
+    def test_generate_image_filename_svg_path_to_png_conversion(self):
+        """SVGファイルパスの場合、拡張子が.pngに変換されるかテスト"""
+        # 複数のSVGファイルパスパターンをテスト
+        test_cases = [
+            ("assets/images/diagram.svg", "diagram.png"),
+            ("../images/chart.svg", "chart.png"),
+            ("./graphics/flow.svg", "flow.png"),
+            ("simple.svg", "simple.png"),
+        ]
+
+        for svg_path, expected_png_name in test_cases:
+            filename = generate_image_filename("test.md", 0, svg_path, "png")
+
+            # 期待するPNGファイル名が含まれているか確認
+            assert expected_png_name.replace(".png", "") in filename
+            assert filename.endswith(".png")
+            # SVGの拡張子が残っていないことを確認
+            assert ".svg" not in filename
+
     def test_ensure_directory_new_directory(self):
         """新しいディレクトリが作成されるかテスト"""
         with tempfile.TemporaryDirectory() as temp_dir:
