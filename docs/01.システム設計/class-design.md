@@ -16,7 +16,7 @@ classDiagram
         +changePassword(oldPassword: string, newPassword: string) boolean
         +deactivate() void
     }
-    
+
     class UserProfile {
         -string firstName
         -string lastName
@@ -25,7 +25,7 @@ classDiagram
         +getFullName() string
         +updateAddress(address: Address) void
     }
-    
+
     class Address {
         -string street
         -string city
@@ -34,7 +34,7 @@ classDiagram
         +getFormattedAddress() string
         +validate() boolean
     }
-    
+
     class Order {
         -int orderId
         -string orderNumber
@@ -49,7 +49,7 @@ classDiagram
         +updateStatus(status: OrderStatus) void
         +cancel() boolean
     }
-    
+
     class OrderItem {
         -int productId
         -int quantity
@@ -58,7 +58,7 @@ classDiagram
         +calculateLineTotal() decimal
         +updateQuantity(quantity: int) void
     }
-    
+
     class Product {
         -int productId
         -string productCode
@@ -72,7 +72,7 @@ classDiagram
         +isAvailable() boolean
         +getDiscountedPrice(discount: decimal) decimal
     }
-    
+
     class ProductCategory {
         -int categoryId
         -string categoryName
@@ -81,7 +81,7 @@ classDiagram
         +addSubCategory(category: ProductCategory) void
         +getProducts() List~Product~
     }
-    
+
     class Customer {
         -int customerId
         -string customerCode
@@ -93,7 +93,7 @@ classDiagram
         +getOrderHistory() List~Order~
         +calculateTotalSpent() decimal
     }
-    
+
     User --> UserProfile : has
     UserProfile --> Address : contains
     Customer --> Order : places
@@ -116,7 +116,7 @@ classDiagram
         +updateUserProfile(userId: int, profile: UserProfile) void
         +resetPassword(email: string) void
     }
-    
+
     class OrderService {
         -OrderRepository orderRepository
         -ProductService productService
@@ -127,7 +127,7 @@ classDiagram
         +cancelOrder(orderId: int) boolean
         +getOrdersByCustomer(customerId: int) List~Order~
     }
-    
+
     class ProductService {
         -ProductRepository productRepository
         -CategoryRepository categoryRepository
@@ -136,7 +136,7 @@ classDiagram
         +searchProducts(criteria: SearchCriteria) List~Product~
         +getProductsByCategory(categoryId: int) List~Product~
     }
-    
+
     class InventoryService {
         -InventoryRepository inventoryRepository
         -NotificationService notificationService
@@ -145,7 +145,7 @@ classDiagram
         +adjustStock(productId: int, adjustment: int) void
         +getStockLevel(productId: int) int
     }
-    
+
     class PaymentService {
         -PaymentGateway paymentGateway
         -PaymentRepository paymentRepository
@@ -153,7 +153,7 @@ classDiagram
         +refundPayment(paymentId: string) RefundResult
         +getPaymentStatus(paymentId: string) PaymentStatus
     }
-    
+
     class NotificationService {
         -EmailSender emailSender
         -SmsSender smsSender
@@ -162,7 +162,7 @@ classDiagram
         +sendStockAlert(product: Product, level: int) void
         +sendPaymentNotification(payment: Payment) void
     }
-    
+
     OrderService --> ProductService : uses
     OrderService --> InventoryService : uses
     OrderService --> PaymentService : uses
@@ -183,21 +183,21 @@ classDiagram
         +delete(id: int) void
         +exists(id: int) boolean
     }
-    
+
     class UserRepository {
         <<interface>>
         +findByUsername(username: string) User
         +findByEmail(email: string) User
         +findActiveUsers() List~User~
     }
-    
+
     class OrderRepository {
         <<interface>>
         +findByCustomerId(customerId: int) List~Order~
         +findByStatus(status: OrderStatus) List~Order~
         +findByDateRange(startDate: DateTime, endDate: DateTime) List~Order~
     }
-    
+
     class ProductRepository {
         <<interface>>
         +findByCategory(categoryId: int) List~Product~
@@ -205,26 +205,26 @@ classDiagram
         +findByKeyword(keyword: string) List~Product~
         +findLowStockProducts(threshold: int) List~Product~
     }
-    
+
     class JpaUserRepository {
         +findByUsername(username: string) User
         +findByEmail(email: string) User
         +findActiveUsers() List~User~
     }
-    
+
     class JpaOrderRepository {
         +findByCustomerId(customerId: int) List~Order~
         +findByStatus(status: OrderStatus) List~Order~
         +findByDateRange(startDate: DateTime, endDate: DateTime) List~Order~
     }
-    
+
     class JpaProductRepository {
         +findByCategory(categoryId: int) List~Product~
         +findByPriceRange(minPrice: decimal, maxPrice: decimal) List~Product~
         +findByKeyword(keyword: string) List~Product~
         +findLowStockProducts(threshold: int) List~Product~
     }
-    
+
     Repository~T~ <|-- UserRepository
     Repository~T~ <|-- OrderRepository
     Repository~T~ <|-- ProductRepository
@@ -245,40 +245,40 @@ classDiagram
         +ApplicationException(message: string, errorCode: string)
         +getErrorDetails() ErrorDetails
     }
-    
+
     class BusinessException {
         +BusinessException(message: string, errorCode: string)
     }
-    
+
     class ValidationException {
         -List~ValidationError~ validationErrors
         +ValidationException(errors: List~ValidationError~)
         +getValidationErrors() List~ValidationError~
     }
-    
+
     class ResourceNotFoundException {
         -string resourceType
         -string resourceId
         +ResourceNotFoundException(resourceType: string, resourceId: string)
     }
-    
+
     class UnauthorizedException {
         +UnauthorizedException(message: string)
     }
-    
+
     class InsufficientStockException {
         -int productId
         -int requestedQuantity
         -int availableQuantity
         +InsufficientStockException(productId: int, requested: int, available: int)
     }
-    
+
     class PaymentProcessingException {
         -string paymentId
         -string gatewayError
         +PaymentProcessingException(paymentId: string, gatewayError: string)
     }
-    
+
     ApplicationException <|-- BusinessException
     ApplicationException <|-- ValidationException
     ApplicationException <|-- ResourceNotFoundException

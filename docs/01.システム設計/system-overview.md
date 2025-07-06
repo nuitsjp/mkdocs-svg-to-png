@@ -33,18 +33,18 @@ graph TB
         A[Web UI]
         B[Mobile App]
     end
-    
+
     subgraph "バックエンド"
         C[API Gateway]
         D[Business Logic]
         E[Data Access Layer]
     end
-    
+
     subgraph "データ層"
         F[Database]
         G[Cache]
     end
-    
+
     A --> C
     B --> C
     C --> D

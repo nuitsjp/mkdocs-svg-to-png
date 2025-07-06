@@ -16,13 +16,11 @@ def generate_image_filename(
         svg_content.encode("utf-8"), usedforsecurity=False
     ).hexdigest()[:8]  # nosec B324
 
-    # SVGファイルパスが含まれている場合、ファイル名に含める
+    # SVGファイルパスが含まれている場合、シンプルに拡張子をimage_formatに変更
     if svg_content.endswith(".svg"):
         svg_file_path = Path(svg_content)
         svg_basename = svg_file_path.stem  # 拡張子を除いたベース名
-        return (
-            f"{page_name}_svg_{block_index}_{svg_basename}_{code_hash}.{image_format}"
-        )
+        return f"{svg_basename}.{image_format}"
 
     return f"{page_name}_svg_{block_index}_{code_hash}.{image_format}"
 
