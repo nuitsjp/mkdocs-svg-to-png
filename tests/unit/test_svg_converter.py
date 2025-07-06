@@ -37,10 +37,11 @@ class TestSvgToPngConverter:
         converter = SvgToPngConverter(basic_config)
         assert converter.config == basic_config
 
+    @patch("mkdocs_svg_to_png.svg_converter.ensure_directory")
     @patch("mkdocs_svg_to_png.svg_converter.cairosvg")
     @patch("mkdocs_svg_to_png.svg_converter.Path")
     def test_convert_svg_content_to_png_success(
-        self, mock_path, mock_cairosvg, converter
+        self, mock_path, mock_cairosvg, mock_ensure_directory, converter
     ):
         """Test successful SVG content to PNG conversion."""
         svg_content = "<svg><rect width='100' height='100'/></svg>"
@@ -52,7 +53,7 @@ class TestSvgToPngConverter:
         # Mock Path operations
         mock_file = Mock()
         mock_path.return_value.open.return_value.__enter__.return_value = mock_file
-        mock_path.return_value.parent = Mock()
+        mock_path.return_value.parent = "/tmp"
 
         result = converter.convert_svg_content(svg_content, output_path)
 
@@ -63,9 +64,10 @@ class TestSvgToPngConverter:
         )
         mock_file.write.assert_called_once_with(b"fake_png_data")
 
+    @patch("mkdocs_svg_to_png.svg_converter.ensure_directory")
     @patch("mkdocs_svg_to_png.svg_converter.cairosvg")
     @patch("mkdocs_svg_to_png.svg_converter.Path")
-    def test_convert_svg_file_to_png_success(self, mock_path, mock_cairosvg, converter):
+    def test_convert_svg_file_to_png_success(self, mock_path, mock_cairosvg, mock_ensure_directory, converter):
         """Test successful SVG file to PNG conversion."""
         svg_path = "/tmp/test.svg"
         output_path = "/tmp/test.png"
@@ -83,7 +85,7 @@ class TestSvgToPngConverter:
         mock_context_manager.__enter__.return_value = mock_file
         mock_context_manager.__exit__.return_value = None
         mock_output_path.open.return_value = mock_context_manager
-        mock_output_path.parent = Mock()
+        mock_output_path.parent = "/tmp"
 
         def path_side_effect(arg):
             if arg == svg_path:
@@ -103,9 +105,10 @@ class TestSvgToPngConverter:
         )
         mock_file.write.assert_called_once_with(b"fake_png_data")
 
+    @patch("mkdocs_svg_to_png.svg_converter.ensure_directory")
     @patch("mkdocs_svg_to_png.svg_converter.cairosvg")
     @patch("mkdocs_svg_to_png.svg_converter.Path")
-    def test_convert_svg_content_cairo_error(self, mock_path, mock_cairosvg, converter):
+    def test_convert_svg_content_cairo_error(self, mock_path, mock_cairosvg, mock_ensure_directory, converter):
         """Test CairoSVG error handling."""
         svg_content = "<svg>valid svg content</svg>"
         output_path = "/tmp/test.png"
@@ -114,7 +117,7 @@ class TestSvgToPngConverter:
         mock_cairosvg.svg2png.side_effect = Exception("Invalid SVG")
 
         # Mock Path operations
-        mock_path.return_value.parent = Mock()
+        mock_path.return_value.parent = "/tmp"
 
         with pytest.raises(SvgConversionError) as exc_info:
             converter.convert_svg_content(svg_content, output_path)
@@ -149,9 +152,10 @@ class TestSvgToPngConverter:
         assert "SVG file not found" in str(exc_info.value)
         assert exc_info.value.details["file_path"] == svg_path
 
+    @patch("mkdocs_svg_to_png.svg_converter.ensure_directory")
     @patch("mkdocs_svg_to_png.svg_converter.cairosvg")
     @patch("mkdocs_svg_to_png.svg_converter.Path")
-    def test_convert_with_custom_dpi(self, mock_path, mock_cairosvg):
+    def test_convert_with_custom_dpi(self, mock_path, mock_cairosvg, mock_ensure_directory):
         """Test conversion with custom DPI setting."""
         config = {
             "output_dir": "assets/images",
@@ -165,7 +169,7 @@ class TestSvgToPngConverter:
         # Mock Path operations
         mock_file = Mock()
         mock_path.return_value.open.return_value.__enter__.return_value = mock_file
-        mock_path.return_value.parent = Mock()
+        mock_path.return_value.parent = "/tmp"
 
         converter.convert_svg_content("<svg/>", "/tmp/test.png")
 
