@@ -18,28 +18,43 @@ class StructuredFormatter(logging.Formatter):
         self.include_caller = include_caller
 
     def format(self, record: logging.LogRecord) -> str:
-        # プラグイン名を取得 (例: mkdocs_svg_to_png.plugin -> mkdocs-svg-to-png)
-        plugin_name = record.name.split(".")[0].replace("_", "-")
-
-        # 基本的なログエントリ
-        log_parts = [
-            f"[{plugin_name}]",
-            f"{record.levelname}:",
-            record.getMessage(),
-        ]
-
-        # コンテキスト情報を追加
-        context_parts = []
+        import time
+        
+        # 基本的なログエントリを構築
+        parts = []
+        
+        # タイムスタンプ
+        parts.append(f"timestamp={time.time()}")
+        
+        # ログレベル
+        parts.append(f"level={record.levelname}")
+        
+        # ロガー名
+        parts.append(f"logger={record.name}")
+        
+        # メッセージ
+        parts.append(f"message={record.getMessage()}")
+        
+        # 呼び出し元情報
+        if self.include_caller and hasattr(record, "pathname"):
+            filename = Path(record.pathname).name if record.pathname else "unknown"
+            func_name = getattr(record, "funcName", getattr(record, "func", "unknown"))
+            line_no = getattr(record, "lineno", 0)
+            parts.append(f"caller={filename}:{func_name}:{line_no}")
+        
+        # 例外情報
+        if record.exc_info:
+            exc_type = record.exc_info[0].__name__ if record.exc_info[0] else "Exception"
+            parts.append(f"exception={exc_type}")
+        
+        # コンテキスト情報
         if hasattr(record, "context"):
             context = getattr(record, "context", None)
-            if context:
+            if context and isinstance(context, dict):
                 for key, value in context.items():
-                    context_parts.append(f"{key}={value}")
-
-        if context_parts:
-            log_parts.append(f"({" ".join(context_parts)})")
-
-        return " ".join(log_parts)
+                    parts.append(f"{key}={value}")
+        
+        return " ".join(parts)
 
 
 def setup_plugin_logging(
