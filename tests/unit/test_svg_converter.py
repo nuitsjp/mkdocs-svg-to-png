@@ -1,6 +1,6 @@
 """
 SVG to PNG conversion functionality tests.
-This module tests the SvgToPngConverter class that replaces MermaidImageGenerator.
+This module tests the SvgToPngConverter class using Playwright.
 """
 
 from __future__ import annotations
@@ -21,9 +21,10 @@ class TestSvgToPngConverter:
         """Basic configuration for testing."""
         return {
             "output_dir": "assets/images",
-            "dpi": 300,
-            "output_format": "png",
-            "quality": 95,
+            "scale": 1.0,
+            "device_scale_factor": 1.0,
+            "default_width": 800,
+            "default_height": 600,
             "error_on_fail": True,
         }
 
@@ -38,83 +39,64 @@ class TestSvgToPngConverter:
         assert converter.config == basic_config
 
     @patch("mkdocs_svg_to_png.svg_converter.ensure_directory")
-    @patch("mkdocs_svg_to_png.svg_converter.cairosvg")
+    @patch("mkdocs_svg_to_png.svg_converter.asyncio")
     @patch("mkdocs_svg_to_png.svg_converter.Path")
     def test_convert_svg_content_to_png_success(
-        self, mock_path, mock_cairosvg, mock_ensure_directory, converter
+        self, mock_path, mock_asyncio, mock_ensure_directory, converter
     ):
         """Test successful SVG content to PNG conversion."""
-        svg_content = "<svg><rect width='100' height='100'/></svg>"
+        svg_content = "<svg width='100' height='100'><rect width='100' height='100'/></svg>"
         output_path = "/tmp/test.png"
 
-        # Mock successful conversion
-        mock_cairosvg.svg2png.return_value = b"fake_png_data"
+        # Mock successful Playwright conversion
+        mock_asyncio.run.return_value = True
 
         # Mock Path operations
-        mock_file = Mock()
-        mock_path.return_value.open.return_value.__enter__.return_value = mock_file
         mock_path.return_value.parent = "/tmp"
 
         result = converter.convert_svg_content(svg_content, output_path)
 
         assert result is True
-        mock_cairosvg.svg2png.assert_called_once_with(
-            bytestring=svg_content.encode("utf-8"),
-            dpi=300,
-        )
-        mock_file.write.assert_called_once_with(b"fake_png_data")
+        mock_asyncio.run.assert_called_once()
+        mock_ensure_directory.assert_called_once_with("/tmp")
 
-    @patch("mkdocs_svg_to_png.svg_converter.ensure_directory")
-    @patch("mkdocs_svg_to_png.svg_converter.cairosvg")
     @patch("mkdocs_svg_to_png.svg_converter.Path")
-    def test_convert_svg_file_to_png_success(self, mock_path, mock_cairosvg, mock_ensure_directory, converter):
+    def test_convert_svg_file_to_png_success(self, mock_path, converter):
         """Test successful SVG file to PNG conversion."""
         svg_path = "/tmp/test.svg"
         output_path = "/tmp/test.png"
 
-        # Mock successful conversion
-        mock_cairosvg.svg2png.return_value = b"fake_png_data"
-
         # Mock Path operations
-        mock_file = Mock()
         mock_svg_path = Mock()
         mock_svg_path.exists.return_value = True
-        mock_svg_path.read_text.return_value = "<svg/>"
-        mock_output_path = Mock()
-        mock_context_manager = MagicMock()
-        mock_context_manager.__enter__.return_value = mock_file
-        mock_context_manager.__exit__.return_value = None
-        mock_output_path.open.return_value = mock_context_manager
-        mock_output_path.parent = "/tmp"
+        mock_svg_path.read_text.return_value = "<svg width='100' height='100'><rect/></svg>"
 
         def path_side_effect(arg):
             if arg == svg_path:
                 return mock_svg_path
-            elif arg == output_path:
-                return mock_output_path
             return Mock()
 
         mock_path.side_effect = path_side_effect
 
-        result = converter.convert_svg_file(svg_path, output_path)
+        # Mock the convert_svg_content method
+        with patch.object(converter, 'convert_svg_content', return_value=True) as mock_convert:
+            result = converter.convert_svg_file(svg_path, output_path)
 
         assert result is True
-        mock_cairosvg.svg2png.assert_called_once_with(
-            url=svg_path,
-            dpi=300,
+        mock_convert.assert_called_once_with(
+            "<svg width='100' height='100'><rect/></svg>", output_path
         )
-        mock_file.write.assert_called_once_with(b"fake_png_data")
 
     @patch("mkdocs_svg_to_png.svg_converter.ensure_directory")
-    @patch("mkdocs_svg_to_png.svg_converter.cairosvg")
+    @patch("mkdocs_svg_to_png.svg_converter.asyncio")
     @patch("mkdocs_svg_to_png.svg_converter.Path")
-    def test_convert_svg_content_cairo_error(self, mock_path, mock_cairosvg, mock_ensure_directory, converter):
-        """Test CairoSVG error handling."""
+    def test_convert_svg_content_playwright_error(self, mock_path, mock_asyncio, mock_ensure_directory, converter):
+        """Test Playwright error handling."""
         svg_content = "<svg>valid svg content</svg>"
         output_path = "/tmp/test.png"
 
-        # Mock CairoSVG error
-        mock_cairosvg.svg2png.side_effect = Exception("Invalid SVG")
+        # Mock Playwright error
+        mock_asyncio.run.side_effect = Exception("Browser launch failed")
 
         # Mock Path operations
         mock_path.return_value.parent = "/tmp"
@@ -122,22 +104,22 @@ class TestSvgToPngConverter:
         with pytest.raises(SvgConversionError) as exc_info:
             converter.convert_svg_content(svg_content, output_path)
 
-        assert "CairoSVG conversion failed" in str(exc_info.value)
-        assert exc_info.value.details["cairo_error"] == "Invalid SVG"
+        assert "Playwright conversion failed" in str(exc_info.value)
+        assert exc_info.value.details["cairo_error"] == "Browser launch failed"
 
     def test_convert_svg_content_with_error_on_fail_false(self):
         """Test SVG conversion with error_on_fail=False."""
         config = {
             "output_dir": "assets/images",
-            "dpi": 300,
+            "scale": 1.0,
             "error_on_fail": False,
         }
         converter = SvgToPngConverter(config)
 
-        with patch("mkdocs_svg_to_png.svg_converter.cairosvg") as mock_cairosvg:
-            mock_cairosvg.svg2png.side_effect = Exception("Invalid SVG")
+        with patch("mkdocs_svg_to_png.svg_converter.asyncio") as mock_asyncio:
+            mock_asyncio.run.side_effect = Exception("Browser launch failed")
 
-            result = converter.convert_svg_content("<invalid/>", "/tmp/test.png")
+            result = converter.convert_svg_content("<svg/>", "/tmp/test.png")
 
             assert result is False  # Should return False instead of raising
 
@@ -153,30 +135,26 @@ class TestSvgToPngConverter:
         assert exc_info.value.details["file_path"] == svg_path
 
     @patch("mkdocs_svg_to_png.svg_converter.ensure_directory")
-    @patch("mkdocs_svg_to_png.svg_converter.cairosvg")
+    @patch("mkdocs_svg_to_png.svg_converter.asyncio")
     @patch("mkdocs_svg_to_png.svg_converter.Path")
-    def test_convert_with_custom_dpi(self, mock_path, mock_cairosvg, mock_ensure_directory):
-        """Test conversion with custom DPI setting."""
+    def test_convert_with_custom_scale(self, mock_path, mock_asyncio, mock_ensure_directory):
+        """Test conversion with custom scale setting."""
         config = {
             "output_dir": "assets/images",
-            "dpi": 150,
+            "scale": 2.0,
             "error_on_fail": True,
         }
         converter = SvgToPngConverter(config)
 
-        mock_cairosvg.svg2png.return_value = b"fake_png_data"
+        mock_asyncio.run.return_value = True
 
         # Mock Path operations
-        mock_file = Mock()
-        mock_path.return_value.open.return_value.__enter__.return_value = mock_file
         mock_path.return_value.parent = "/tmp"
 
-        converter.convert_svg_content("<svg/>", "/tmp/test.png")
+        result = converter.convert_svg_content("<svg width='100' height='100'/>", "/tmp/test.png")
 
-        mock_cairosvg.svg2png.assert_called_once_with(
-            bytestring=b"<svg/>",
-            dpi=150,
-        )
+        assert result is True
+        mock_asyncio.run.assert_called_once()
 
     def test_validate_svg_content_valid(self, converter):
         """Test SVG content validation with valid content."""
@@ -193,3 +171,45 @@ class TestSvgToPngConverter:
             converter._validate_svg_content(invalid_svg)
 
         assert "Invalid SVG content" in str(exc_info.value)
+
+    def test_extract_svg_dimensions_with_width_height(self, converter):
+        """Test SVG dimension extraction from width/height attributes."""
+        svg_content = "<svg width='800' height='600'><rect/></svg>"
+        
+        width, height = converter._extract_svg_dimensions(svg_content)
+        
+        assert width == 800
+        assert height == 600
+
+    def test_extract_svg_dimensions_with_viewbox(self, converter):
+        """Test SVG dimension extraction from viewBox attribute."""
+        svg_content = "<svg viewBox='0 0 1200 800'><rect/></svg>"
+        
+        width, height = converter._extract_svg_dimensions(svg_content)
+        
+        assert width == 1200
+        assert height == 800
+
+    def test_extract_svg_dimensions_fallback(self, converter):
+        """Test SVG dimension extraction fallback to defaults."""
+        svg_content = "<svg><rect/></svg>"
+        
+        width, height = converter._extract_svg_dimensions(svg_content)
+        
+        assert width == 800  # default_width
+        assert height == 600  # default_height
+
+    def test_parse_dimension_pixels(self, converter):
+        """Test dimension parsing with pixel units."""
+        result = converter._parse_dimension("100px", 50)
+        assert result == 100
+
+    def test_parse_dimension_no_units(self, converter):
+        """Test dimension parsing without units."""
+        result = converter._parse_dimension("150", 50)
+        assert result == 150
+
+    def test_parse_dimension_invalid(self, converter):
+        """Test dimension parsing with invalid input."""
+        result = converter._parse_dimension("invalid", 75)
+        assert result == 75
