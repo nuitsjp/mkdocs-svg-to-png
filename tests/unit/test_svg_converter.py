@@ -142,6 +142,51 @@ class TestSvgToPngConverter:
         assert "SVG file not found" in str(exc_info.value)
         assert exc_info.value.details["file_path"] == svg_path
 
+    def test_convert_svg_file_with_relative_path_mkdocs_context(self, tmp_path):
+        """Test SVG file conversion with relative path in MkDocs context (should fail without base_path)."""
+        # MkDocsコンテキストでの相対パス変換をテスト
+        config = {
+            "output_dir": "assets/images",
+            "scale": 1.0,
+            "device_scale_factor": 1.0,
+            "default_width": 800,
+            "default_height": 600,
+            "error_on_fail": False,
+        }
+        converter = SvgToPngConverter(config)
+        
+        # MkDocsのようなディレクトリ構造を作成
+        project_root = tmp_path / "project"
+        project_root.mkdir()
+        docs_dir = project_root / "docs"
+        docs_dir.mkdir()
+        assets_dir = docs_dir / "assets" / "images"
+        assets_dir.mkdir(parents=True)
+        
+        # SVGファイルを作成
+        svg_content = """<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300">
+            <rect width="100" height="100" fill="red"/>
+        </svg>"""
+        svg_file = assets_dir / "test_mermaid_0_abc123.svg"
+        svg_file.write_text(svg_content)
+        
+        # プロジェクトルートで作業（MkDocsの動作と同じ）
+        import os
+        original_cwd = os.getcwd()
+        try:
+            os.chdir(project_root)
+            
+            # 相対パス（Mermaidプラグインから生成される）
+            relative_path = "assets/images/test_mermaid_0_abc123.svg"
+            output_path = assets_dir / "test_mermaid_0_abc123.png"
+            
+            # 現在の実装では失敗するはず（docs/ベースパスが考慮されていない）
+            result = converter.convert_svg_file(str(relative_path), str(output_path))
+            assert result is False  # 失敗することを期待
+            
+        finally:
+            os.chdir(original_cwd)
+
     @patch("mkdocs_svg_to_png.svg_converter.ensure_directory")
     @patch("mkdocs_svg_to_png.svg_converter.asyncio")
     @patch("mkdocs_svg_to_png.svg_converter.Path")

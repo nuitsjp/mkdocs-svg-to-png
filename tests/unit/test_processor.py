@@ -3,6 +3,7 @@ SvgProcessorクラスのテスト
 このファイルでは、SvgProcessorクラスの動作を検証します。
 """
 
+from pathlib import Path
 from unittest.mock import Mock
 
 import pytest
@@ -112,3 +113,121 @@ print("Hello")
         # error_on_fail=Falseなので元の内容が返る
         assert result_content == markdown
         assert len(result_paths) == 0
+
+    def test_process_page_with_svg_file_reference_failure(self, basic_config):
+        """SVGファイル参照の変換が失敗した場合の挙動をテスト（Mermaidのような相対パス）"""
+        processor = SvgProcessor(basic_config)
+
+        # SVGファイル参照の変換が失敗するブロックをモック
+        mock_block = Mock(spec=SvgBlock)
+        mock_block.get_filename.return_value = "test_mermaid_0_abc123.png"
+        mock_block.generate_png.return_value = False  # SVGファイルが見つからず失敗
+
+        processor.markdown_processor.extract_svg_blocks = Mock(
+            return_value=[mock_block]
+        )
+
+        markdown = """# Test Mermaid Reference
+        
+![Mermaid Diagram](../assets/images/test_mermaid_0_abc123.svg)
+"""
+        result_content, result_paths = processor.process_page(
+            "subdirectory/test.md", markdown, "/output"
+        )
+
+        # error_on_fail=Falseなので元の内容が返る
+        assert result_content == markdown
+        assert len(result_paths) == 0
+        mock_block.generate_png.assert_called_once()
+
+    def test_process_page_with_svg_file_reference_needs_docs_base_path(self, tmp_path):
+        """SVGファイル参照でdocs_base_pathが必要なケースをテスト"""
+        config = {
+            "output_dir": "assets/images",
+            "output_format": "png",
+            "preserve_original": False,
+            "error_on_fail": False,
+            "log_level": "INFO",
+            "dpi": 150,
+            "quality": 90,
+        }
+        processor = SvgProcessor(config)
+        
+        # MkDocsのようなディレクトリ構造
+        docs_dir = tmp_path / "docs"
+        docs_dir.mkdir()
+        assets_dir = docs_dir / "assets" / "images"
+        assets_dir.mkdir(parents=True)
+        
+        # SVGファイルを作成
+        svg_content = """<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300">
+            <rect width="100" height="100" fill="red"/>
+        </svg>"""
+        svg_file = assets_dir / "architecture_mermaid_0_abc123.svg"
+        svg_file.write_text(svg_content)
+        
+        # Mermaidプラグインで生成されるようなMarkdown
+        markdown = """# Architecture
+        
+![Mermaid Diagram](assets/images/architecture_mermaid_0_abc123.svg)
+"""
+        
+        # 現在の実装では相対パス解決に失敗するはず
+        result_content, result_paths = processor.process_page(
+            "architecture.md", 
+            markdown, 
+            str(assets_dir)
+        )
+        
+        # 変換に失敗してオリジナルのMarkdownが返るはず
+        assert result_content == markdown
+        assert len(result_paths) == 0
+
+    def test_process_page_svg_file_path_resolution_with_docs_dir(self, tmp_path):
+        """SVGファイルパス解決にdocs_dirが必要なケースのテスト"""
+        config = {
+            "output_dir": "assets/images",
+            "output_format": "png",
+            "preserve_original": False,
+            "error_on_fail": False,
+            "log_level": "INFO",
+            "dpi": 150,
+            "quality": 90,
+        }
+        processor = SvgProcessor(config)
+        
+        # MkDocsのようなディレクトリ構造
+        docs_dir = tmp_path / "docs"
+        docs_dir.mkdir()
+        assets_dir = docs_dir / "assets" / "images"
+        assets_dir.mkdir(parents=True)
+        
+        # SVGファイルを作成
+        svg_content = """<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300">
+            <rect width="100" height="100" fill="red"/>
+        </svg>"""
+        svg_file = assets_dir / "architecture_mermaid_0_abc123.svg"
+        svg_file.write_text(svg_content)
+        
+        # Mermaidプラグインで生成されるようなMarkdown
+        markdown = """# Architecture
+        
+![Mermaid Diagram](assets/images/architecture_mermaid_0_abc123.svg)
+"""
+        
+        # process_pageにdocs_dirを渡すことで成功するはず
+        result_content, result_paths = processor.process_page(
+            "architecture.md", 
+            markdown, 
+            str(assets_dir),
+            docs_dir=str(docs_dir)  # docs_dirを渡す
+        )
+        
+        # SVGからPNGへの変換が成功し、画像パスが返るはず
+        assert len(result_paths) == 1
+        assert result_content != markdown  # Markdownが変更されているはず
+        
+        # 生成されたPNGファイルが存在することを確認
+        generated_png_path = Path(result_paths[0])
+        assert generated_png_path.exists()
+        assert generated_png_path.suffix == ".png"

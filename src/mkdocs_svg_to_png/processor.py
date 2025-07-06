@@ -21,11 +21,22 @@ class SvgProcessor:
         markdown_content: str,
         output_dir: Union[str, Path],
         page_url: str = "",
+        docs_dir: Union[str, Path, None] = None,
     ) -> tuple[str, list[str]]:
         blocks = self.markdown_processor.extract_svg_blocks(markdown_content)
 
         if not blocks:
             return markdown_content, []
+
+        # SVGファイルパスを解決する（docs_dirが指定されている場合）
+        if docs_dir:
+            resolved_paths = self.markdown_processor.resolve_svg_file_paths(
+                blocks, str(docs_dir)
+            )
+            # 解決されたパスをブロックに設定
+            for block, resolved_path in zip(blocks, resolved_paths):
+                if resolved_path and block.file_path:  # ファイル参照の場合のみ
+                    block.file_path = resolved_path
 
         image_paths = []
         successful_blocks = []

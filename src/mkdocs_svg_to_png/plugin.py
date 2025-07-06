@@ -168,6 +168,7 @@ class SvgToPngPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped-call]
                 markdown,
                 output_dir,
                 page_url=page.url,
+                docs_dir=docs_dir,
             )
 
             self.generated_images.extend(image_paths)
