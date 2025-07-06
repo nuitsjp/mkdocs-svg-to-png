@@ -130,3 +130,10 @@ Error behavior is controlled by `error_on_fail` setting:
 - Mermaid CLI uses local installation with automatic fallback to `npx mmdc`
 - Quality checks are unified with pre-commit hooks (`make check`)
 - Use `make check-all` before submitting PRs
+
+## Potential Issues and Observations
+
+- 🚨 **File Anomaly Detection**:
+  - @tests/fixtures/input/ と @tests/fixtures/expected/ の下でファイル数が違いすぎませんか？
+    - この不一致は潜在的な問題を示唆している可能性があります
+    - テストケースの整合性を確認する必要があります

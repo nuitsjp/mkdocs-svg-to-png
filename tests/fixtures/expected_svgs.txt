@@ -1,0 +1,10 @@
+architecture_mermaid_0_07a67020.svg
+class-design_mermaid_0_86b4976d.svg
+database-design_mermaid_0_3d6e6222.svg
+detailed-diagram.drawio.svg
+output_basic.svg
+output_sequence.svg
+project-plan_mermaid_0_336420ee.svg
+state-management_mermaid_0_5231eec1.svg
+system-overview_mermaid_0_93d92671.svg
+user-journey_mermaid_0_ccef6318.svg

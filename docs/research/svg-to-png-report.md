@@ -23,7 +23,7 @@
 - **具体例**: "Web Application Firewall" などで文字が重複表示
 - **原因**: フォントフォールバック時の文字幅計算エラー
 
-#### 2.1.2 rsvg-convertでの問題  
+#### 2.1.2 rsvg-convertでの問題
 - **症状**: 単語間スペースの消失
 - **具体例**: "Client Application" → "ClientApplication"
 - **原因**: tspan要素間のスペース処理不備
@@ -171,6 +171,6 @@ uv run python svg_to_png_browser.py
 
 ---
 
-**調査実施者**: Claude Code Assistant  
-**調査完了日**: 2025年7月6日  
+**調査実施者**: Claude Code Assistant
+**調査完了日**: 2025年7月6日
 **文書バージョン**: 1.0

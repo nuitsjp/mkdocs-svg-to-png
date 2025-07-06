@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 import re
-import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -59,8 +58,24 @@ class SvgToPngConverter:
             ensure_directory(str(Path(output_path).parent))
 
             # Convert SVG to PNG using Playwright
-            success = asyncio.run(self._convert_svg_with_playwright(svg_content, output_path))
-            
+            try:
+                # Check if we're in an async context
+                asyncio.get_running_loop()
+                # If we are, run in a new thread with a new event loop
+                import concurrent.futures
+
+                with concurrent.futures.ThreadPoolExecutor() as executor:
+                    future = executor.submit(
+                        asyncio.run,
+                        self._convert_svg_with_playwright(svg_content, output_path),
+                    )
+                    success = future.result()
+            except RuntimeError:
+                # No event loop running, use asyncio.run
+                success = asyncio.run(
+                    self._convert_svg_with_playwright(svg_content, output_path)
+                )
+
             if success:
                 self.logger.info(f"Generated PNG image: {output_path}")
                 return True
@@ -120,10 +135,14 @@ class SvgToPngConverter:
             # Try to parse as XML using defusedxml (secure) or fallback
             ET.fromstring(svg_content)  # nosec B314
 
-            # Check if it's actually SVG
-            if not svg_content.strip().startswith("<svg"):
+            # Check if it's actually SVG (allow XML declaration)
+            content_stripped = svg_content.strip()
+            if not (
+                content_stripped.startswith("<svg")
+                or (content_stripped.startswith("<?xml") and "<svg" in content_stripped)
+            ):
                 raise SvgConversionError(
-                    "Invalid SVG content: Must start with <svg> tag",
+                    "Invalid SVG content: Must contain <svg> tag",
                     svg_content=svg_content,
                 )
 
@@ -134,7 +153,9 @@ class SvgToPngConverter:
                 cairo_error=str(e),
             ) from e
 
-    async def _convert_svg_with_playwright(self, svg_content: str, output_path: str) -> bool:
+    async def _convert_svg_with_playwright(
+        self, svg_content: str, output_path: str
+    ) -> bool:
         """Convert SVG content to PNG using Playwright browser engine.
 
         Args:
@@ -155,15 +176,17 @@ class SvgToPngConverter:
             try:
                 # Extract SVG dimensions
                 width, height = self._extract_svg_dimensions(svg_content)
-                
+
                 # Calculate scaled dimensions
                 scale = self.config.get("scale", 1.0)
                 scaled_width = int(width * scale)
                 scaled_height = int(height * scale)
-                
+
                 # Set viewport to match SVG dimensions
-                await page.set_viewport_size({"width": scaled_width, "height": scaled_height})
-                
+                await page.set_viewport_size(
+                    {"width": scaled_width, "height": scaled_height}
+                )
+
                 # Create HTML content with embedded SVG
                 html_content = f"""
                 <!DOCTYPE html>
@@ -188,48 +211,48 @@ class SvgToPngConverter:
                 </body>
                 </html>
                 """
-                
+
                 # Load HTML content
                 await page.set_content(html_content)
-                
+
                 # Wait for SVG to render
                 await page.wait_for_load_state("networkidle")
-                
+
                 # Take screenshot
                 await page.screenshot(path=output_path, full_page=True)
-                
+
                 return True
-                
+
             finally:
                 await browser.close()
 
     def _extract_svg_dimensions(self, svg_content: str) -> tuple[int, int]:
         """Extract width and height from SVG content.
-        
+
         Args:
             svg_content: String containing SVG markup
-            
+
         Returns:
             Tuple of (width, height) in pixels
         """
         # Default dimensions
         default_width = self.config.get("default_width", 800)
         default_height = self.config.get("default_height", 600)
-        
+
         try:
             # Parse SVG content
             root = ET.fromstring(svg_content)
-            
+
             # Try to get width and height attributes
             width_attr = root.get("width")
             height_attr = root.get("height")
-            
+
             if width_attr and height_attr:
                 # Extract numeric values
                 width = self._parse_dimension(width_attr, default_width)
                 height = self._parse_dimension(height_attr, default_height)
                 return width, height
-            
+
             # Try to get dimensions from viewBox
             viewbox = root.get("viewBox")
             if viewbox:
@@ -238,19 +261,19 @@ class SvgToPngConverter:
                     width = int(float(parts[2]))
                     height = int(float(parts[3]))
                     return width, height
-            
+
         except Exception as e:
             self.logger.warning(f"Failed to extract SVG dimensions: {e}")
-        
+
         return default_width, default_height
-    
+
     def _parse_dimension(self, dimension_str: str, default: int) -> int:
         """Parse dimension string to integer pixel value.
-        
+
         Args:
             dimension_str: Dimension string (e.g., "100px", "100", "10em")
             default: Default value if parsing fails
-            
+
         Returns:
             Integer pixel value
         """
@@ -261,7 +284,7 @@ class SvgToPngConverter:
                 return int(float(numeric_match.group(1)))
         except (ValueError, AttributeError):
             pass
-        
+
         return default
 
     def _handle_conversion_error(

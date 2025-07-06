@@ -2,6 +2,7 @@
   "permissions": {
     "allow": [
       "Bash(similarity-py:*)",
+      "Bash(python:*)",
       "Bash(python3:*)",
       "Bash(make:*)",
       "Bash(echo $PATH)",
@@ -16,14 +17,12 @@
       "Bash(node:*)",
       "Bash(npx mmdc:*)",
       "Bash(rm:*)",
-      "Bash(uv run pytest:*)",
       "Bash(grep:*)",
       "Bash(mkdir:*)",
       "Bash(mv:*)",
       "Bash(find:*)",
       "Bash(rg:*)",
-      "Bash(python:*)",
-      "Bash(uv run:*)"
+      "Bash(uv:*)"
     ],
     "deny": []
   }

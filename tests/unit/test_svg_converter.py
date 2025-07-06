@@ -5,7 +5,7 @@ This module tests the SvgToPngConverter class using Playwright.
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -45,7 +45,9 @@ class TestSvgToPngConverter:
         self, mock_path, mock_asyncio, mock_ensure_directory, converter
     ):
         """Test successful SVG content to PNG conversion."""
-        svg_content = "<svg width='100' height='100'><rect width='100' height='100'/></svg>"
+        svg_content = (
+            "<svg width='100' height='100'><rect width='100' height='100'/></svg>"
+        )
         output_path = "/tmp/test.png"
 
         # Mock successful Playwright conversion
@@ -69,7 +71,9 @@ class TestSvgToPngConverter:
         # Mock Path operations
         mock_svg_path = Mock()
         mock_svg_path.exists.return_value = True
-        mock_svg_path.read_text.return_value = "<svg width='100' height='100'><rect/></svg>"
+        mock_svg_path.read_text.return_value = (
+            "<svg width='100' height='100'><rect/></svg>"
+        )
 
         def path_side_effect(arg):
             if arg == svg_path:
@@ -79,7 +83,9 @@ class TestSvgToPngConverter:
         mock_path.side_effect = path_side_effect
 
         # Mock the convert_svg_content method
-        with patch.object(converter, 'convert_svg_content', return_value=True) as mock_convert:
+        with patch.object(
+            converter, "convert_svg_content", return_value=True
+        ) as mock_convert:
             result = converter.convert_svg_file(svg_path, output_path)
 
         assert result is True
@@ -90,7 +96,9 @@ class TestSvgToPngConverter:
     @patch("mkdocs_svg_to_png.svg_converter.ensure_directory")
     @patch("mkdocs_svg_to_png.svg_converter.asyncio")
     @patch("mkdocs_svg_to_png.svg_converter.Path")
-    def test_convert_svg_content_playwright_error(self, mock_path, mock_asyncio, mock_ensure_directory, converter):
+    def test_convert_svg_content_playwright_error(
+        self, mock_path, mock_asyncio, mock_ensure_directory, converter
+    ):
         """Test Playwright error handling."""
         svg_content = "<svg>valid svg content</svg>"
         output_path = "/tmp/test.png"
@@ -137,7 +145,9 @@ class TestSvgToPngConverter:
     @patch("mkdocs_svg_to_png.svg_converter.ensure_directory")
     @patch("mkdocs_svg_to_png.svg_converter.asyncio")
     @patch("mkdocs_svg_to_png.svg_converter.Path")
-    def test_convert_with_custom_scale(self, mock_path, mock_asyncio, mock_ensure_directory):
+    def test_convert_with_custom_scale(
+        self, mock_path, mock_asyncio, mock_ensure_directory
+    ):
         """Test conversion with custom scale setting."""
         config = {
             "output_dir": "assets/images",
@@ -151,7 +161,9 @@ class TestSvgToPngConverter:
         # Mock Path operations
         mock_path.return_value.parent = "/tmp"
 
-        result = converter.convert_svg_content("<svg width='100' height='100'/>", "/tmp/test.png")
+        result = converter.convert_svg_content(
+            "<svg width='100' height='100'/>", "/tmp/test.png"
+        )
 
         assert result is True
         mock_asyncio.run.assert_called_once()
@@ -175,27 +187,27 @@ class TestSvgToPngConverter:
     def test_extract_svg_dimensions_with_width_height(self, converter):
         """Test SVG dimension extraction from width/height attributes."""
         svg_content = "<svg width='800' height='600'><rect/></svg>"
-        
+
         width, height = converter._extract_svg_dimensions(svg_content)
-        
+
         assert width == 800
         assert height == 600
 
     def test_extract_svg_dimensions_with_viewbox(self, converter):
         """Test SVG dimension extraction from viewBox attribute."""
         svg_content = "<svg viewBox='0 0 1200 800'><rect/></svg>"
-        
+
         width, height = converter._extract_svg_dimensions(svg_content)
-        
+
         assert width == 1200
         assert height == 800
 
     def test_extract_svg_dimensions_fallback(self, converter):
         """Test SVG dimension extraction fallback to defaults."""
         svg_content = "<svg><rect/></svg>"
-        
+
         width, height = converter._extract_svg_dimensions(svg_content)
-        
+
         assert width == 800  # default_width
         assert height == 600  # default_height
 
