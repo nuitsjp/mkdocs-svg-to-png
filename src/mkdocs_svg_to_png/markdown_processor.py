@@ -118,7 +118,7 @@ class MarkdownProcessor:
     def resolve_svg_file_paths(
         self, svg_blocks: list[SvgBlock], base_path: str
     ) -> list[str]:
-        """SVGファイルパスを絶対パスに解決する"""
+        """SVGファイルパスを絶対パスに解決する（従来の方法）"""
         resolved_paths = []
         base_path_obj = Path(base_path)
 
@@ -132,6 +132,34 @@ class MarkdownProcessor:
                 else:
                     # 相対パスを絶対パスに変換
                     resolved_path = base_path_obj / file_path
+                    resolved_paths.append(str(resolved_path.resolve()))
+
+        return resolved_paths
+
+    def resolve_svg_file_paths_from_page(
+        self, svg_blocks: list[SvgBlock], page_file: str, docs_dir: str
+    ) -> list[str]:
+        """ページファイルの位置を基準にしてSVGファイルパスを絶対パスに解決する"""
+        resolved_paths = []
+        docs_dir_obj = Path(docs_dir)
+
+        for block in svg_blocks:
+            if not block.file_path:  # インラインSVGの場合
+                resolved_paths.append("")
+            else:
+                file_path = Path(block.file_path)
+                if file_path.is_absolute():
+                    resolved_paths.append(str(file_path))
+                else:
+                    # 相対パスの "../" プレフィックスを除去してdocs_dirを基準に解決
+                    # 例: "../assets/images/hoge.svg" → "docs/assets/images/hoge.svg"
+
+                    # "../" を除去した相対パスを取得
+                    normalized_path = file_path
+                    while str(normalized_path).startswith("../"):
+                        normalized_path = Path(*normalized_path.parts[1:])
+
+                    resolved_path = docs_dir_obj / normalized_path
                     resolved_paths.append(str(resolved_path.resolve()))
 
         return resolved_paths

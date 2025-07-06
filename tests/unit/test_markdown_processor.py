@@ -301,3 +301,79 @@ Some text.
         assert any(block.file_path == "diagram.svg" for block in svg_blocks)
         assert any("<circle" in block.code for block in svg_blocks)
         assert any(block.file_path == "assets/chart.svg" for block in svg_blocks)
+
+    def test_resolve_svg_file_paths_from_root(self, basic_config):
+        """ルートレベルのファイルからの相対パス解決テスト"""
+        processor = MarkdownProcessor(basic_config)
+
+        blocks = [
+            SvgBlock(file_path="assets/images/test.svg"),
+            SvgBlock(file_path="images/diagram.svg"),
+        ]
+
+        # ルートレベルのファイル（index.md）からの相対パス
+        page_file = "index.md"
+        docs_dir = "/home/ubuntu/mkdocs-svg-to-png/docs"
+
+        resolved_paths = processor.resolve_svg_file_paths_from_page(
+            blocks, page_file, docs_dir
+        )
+
+        assert (
+            resolved_paths[0]
+            == "/home/ubuntu/mkdocs-svg-to-png/docs/assets/images/test.svg"
+        )
+        assert (
+            resolved_paths[1]
+            == "/home/ubuntu/mkdocs-svg-to-png/docs/images/diagram.svg"
+        )
+
+    def test_resolve_svg_file_paths_from_subfolder(self, basic_config):
+        """サブフォルダ内のファイルからの相対パス解決テスト"""
+        processor = MarkdownProcessor(basic_config)
+
+        blocks = [
+            SvgBlock(
+                file_path="../assets/images/test.svg"
+            ),  # サブフォルダから上のレベルのassets/images/
+            SvgBlock(
+                file_path="../images/diagram.svg"
+            ),  # サブフォルダから上のレベルのimages/
+        ]
+
+        # サブフォルダ内のファイル（01.システム設計/architecture.md）からの相対パス
+        page_file = "01.システム設計/architecture.md"
+        docs_dir = "/home/ubuntu/mkdocs-svg-to-png/docs"
+
+        resolved_paths = processor.resolve_svg_file_paths_from_page(
+            blocks, page_file, docs_dir
+        )
+
+        # サブフォルダから見た相対パス（../で上のレベルに移動）
+        assert (
+            resolved_paths[0]
+            == "/home/ubuntu/mkdocs-svg-to-png/docs/assets/images/test.svg"
+        )
+        assert (
+            resolved_paths[1]
+            == "/home/ubuntu/mkdocs-svg-to-png/docs/images/diagram.svg"
+        )
+
+    def test_resolve_svg_file_paths_absolute_paths(self, basic_config):
+        """絶対パスの場合はそのまま返すテスト"""
+        processor = MarkdownProcessor(basic_config)
+
+        blocks = [
+            SvgBlock(file_path="/absolute/path/test.svg"),
+            SvgBlock(code="<svg>inline</svg>"),  # インラインSVG
+        ]
+
+        page_file = "test.md"
+        docs_dir = "/home/ubuntu/mkdocs-svg-to-png/docs"
+
+        resolved_paths = processor.resolve_svg_file_paths_from_page(
+            blocks, page_file, docs_dir
+        )
+
+        assert resolved_paths[0] == "/absolute/path/test.svg"
+        assert resolved_paths[1] == ""  # インラインSVGの場合は空文字列

@@ -28,7 +28,7 @@ class SvgProcessor:
         if not blocks:
             return markdown_content, []
 
-        self._resolve_svg_file_paths(blocks, docs_dir)
+        self._resolve_svg_file_paths(blocks, docs_dir, page_file)
         image_paths, successful_blocks = self._process_svg_blocks(
             blocks, page_file, output_dir
         )
@@ -42,15 +42,23 @@ class SvgProcessor:
         return markdown_content, []
 
     def _resolve_svg_file_paths(
-        self, blocks: list[Any], docs_dir: Union[str, Path, None]
+        self, blocks: list[Any], docs_dir: Union[str, Path, None], page_file: str = ""
     ) -> None:
         """SVGファイルパスを解決する"""
         if not docs_dir:
             return
 
-        resolved_paths = self.markdown_processor.resolve_svg_file_paths(
-            blocks, str(docs_dir)
-        )
+        if page_file:
+            # ページファイル基準の新しいパス解決メソッドを使用
+            resolved_paths = self.markdown_processor.resolve_svg_file_paths_from_page(
+                blocks, page_file, str(docs_dir)
+            )
+        else:
+            # 従来の方法（後方互換性のため）
+            resolved_paths = self.markdown_processor.resolve_svg_file_paths(
+                blocks, str(docs_dir)
+            )
+
         # 解決されたパスをブロックに設定
         for block, resolved_path in zip(blocks, resolved_paths):
             if resolved_path and block.file_path:  # ファイル参照の場合のみ

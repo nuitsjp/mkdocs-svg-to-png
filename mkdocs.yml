@@ -34,18 +34,7 @@ plugins:
       enabled_if_env: ENABLE_PDF_EXPORT
   - to-pdf:
       enabled_if_env: ENABLE_PDF_EXPORT
-      cover_subtitle: 'MkDocs Mermaid to Image'
+      cover_subtitle: 'MkDocs SVG to PNG Plugin'
       toc_title: 目次
       toc_level: 3
-      output_path: MkDocs-Mermaid-to-Image.pdf
-
-nav:
-  - Home: index.md
-  - Mermaidテスト: test-mermaid.md
-  - Architecture: architecture.md
-  - Usage: usage.md
-  - Appendix:
-      - Claude Cheat Sheet: appendix/claude-cheat-sheet.md
-      - Mermaid CLI: appendix/mermaid-cli.md
-      - MkDocs Architecture: appendix/mkdocs-architecture.md
-      - Release Strategy: appendix/release-strategy.md
+      output_path: mkdocs-svg-to-png.pdf
