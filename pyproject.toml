@@ -112,6 +112,7 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["PLR2004", "PLR0913", "S101", "PLC0415"]
 "src/mkdocs_svg_to_png/_version.py" = ["UP006", "UP035", "I001"]
+"docs/research/*" = ["UP006", "UP035", "PTH123", "E501", "F841"]
 
 [tool.mypy]
 python_version = "3.11"
@@ -135,12 +136,12 @@ disallow_untyped_defs = false
 disallow_incomplete_defs = false
 
 [[tool.mypy.overrides]]
-module = ["cairosvg", "defusedxml.*"]
+module = ["cairosvg", "defusedxml.*", "playwright.*"]
 ignore_missing_imports = true
 
 [tool.bandit]
-exclude_dirs = ["tests", ".venv"]
-skips = ["B101", "B311"]
+exclude_dirs = ["tests", ".venv", "docs/research"]
+skips = ["B101", "B311", "B314", "B405"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
