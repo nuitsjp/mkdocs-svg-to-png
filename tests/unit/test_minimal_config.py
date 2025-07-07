@@ -49,7 +49,6 @@ class TestMinimalConfig:
         essential_with_defaults = [
             "output_dir",  # 画像出力先
             "cache_enabled",  # キャッシュ有効化
-            "cache_dir",  # キャッシュディレクトリ
             "preserve_original",  # 元コード保持
             "error_on_fail",  # エラー時動作
             "log_level",  # ログレベル

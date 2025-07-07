@@ -41,7 +41,6 @@ class TestPluginDefaults:
         expected_defaults = {
             "output_dir": "assets/images",
             "cache_enabled": True,
-            "cache_dir": ".svg_cache",
             "preserve_original": False,
             "error_on_fail": False,
             "log_level": "INFO",

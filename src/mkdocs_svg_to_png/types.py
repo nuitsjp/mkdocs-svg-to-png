@@ -16,7 +16,6 @@ class PluginConfigDict(TypedDict, total=False):
     output_dir: str
     image_format: ImageFormat
     cache_enabled: bool
-    cache_dir: str
     preserve_original: bool
     error_on_fail: bool
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"]
@@ -81,7 +80,6 @@ class LogContext(TypedDict, total=False):
 CommandResult = tuple[int, str, str]
 
 FileOperation = Literal["read", "write", "create", "delete"]
-CacheOperation = Literal["hit", "miss", "invalidate", "store"]
 
 PluginHook = Literal["on_config", "on_page_markdown", "on_post_build"]
 
@@ -90,14 +88,5 @@ class ProcessingStats(TypedDict):
     total_blocks: int
     processed_blocks: int
     failed_blocks: int
-    cache_hits: int
-    cache_misses: int
     total_processing_time_ms: float
     average_processing_time_ms: float
-
-
-class CacheInfo(TypedDict):
-    cache_key: str
-    cache_hit: bool
-    cache_timestamp: str
-    file_hash: str

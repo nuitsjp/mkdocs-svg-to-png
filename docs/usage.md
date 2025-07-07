@@ -15,7 +15,6 @@ plugins:
       quality: 95                # デフォルト: 95
       background_color: "transparent" # デフォルト: "transparent"
       cache_enabled: true        # デフォルト: true
-      cache_dir: ".svg_cache"    # デフォルト: ".svg_cache"
       preserve_original: false   # デフォルト: false
       error_on_fail: false       # デフォルト: false
       log_level: "INFO"          # "DEBUG", "INFO", "WARNING", "ERROR"
@@ -33,7 +32,6 @@ plugins:
 - **quality**: PNG画像の品質（0-100）
 - **background_color**: 生成画像の背景色
 - **cache_enabled**: キャッシュ機能の有効/無効
-- **cache_dir**: キャッシュディレクトリ
 - **preserve_original**: 元のSVGコード/参照を保持するか
 - **error_on_fail**: エラー時にビルドを停止するか
 - **log_level**: プラグインのログレベル
@@ -169,7 +167,7 @@ LOG_LEVEL=DEBUG mkdocs build
 - **変換前**: SVGコードブロックまたはSVGファイル参照
 - **変換後**: 画像タグ（`<img>`）
 - **生成画像**: 設定した`output_dir`に保存
-- **キャッシュ**: 設定した`cache_dir`に保存（再利用）
+- **キャッシュ**: 内部的に管理されるキャッシュディレクトリに保存（再利用）
 
 ### 生成画像の確認
 

@@ -80,7 +80,6 @@ plugins:
       quality: 95
       background_color: "transparent"
       cache_enabled: true
-      cache_dir: ".svg_cache"
       preserve_original: false
       error_on_fail: false
       log_level: "INFO"
@@ -107,9 +106,6 @@ plugins:
 
 -   **`cache_enabled`** (default: `true`)
     -   Enable caching to avoid re-rendering unchanged SVG content
-
--   **`cache_dir`** (default: `".svg_cache"`)
-    -   Directory for cache files, relative to your project root
 
 -   **`preserve_original`** (default: `false`)
     -   If `true`, keeps the original SVG code block alongside the generated PNG image
