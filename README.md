@@ -12,10 +12,9 @@ This plugin finds SVG code blocks and image references and converts them to PNG 
 
 This plugin requires Python 3.9+ and automatically installs the following dependencies:
 
-- **Playwright** (for SVG to PNG conversion)
-- **Pillow** (for image processing)
-- **NumPy** (for image data manipulation)
-- **defusedxml** (for secure XML parsing)
+- **MkDocs** (>=1.4.0) - Documentation site generator
+- **MkDocs Material** (>=8.0.0) - Material theme for MkDocs
+- **Playwright** (>=1.40.0) - Browser automation for SVG to PNG conversion
 
 ## Setup
 
@@ -23,13 +22,17 @@ Install the plugin using pip:
 
 ```bash
 pip install mkdocs-svg-to-png
+python -m playwright install
 ```
 
 If you're using **uv** (recommended for development):
 
 ```bash
 uv add mkdocs-svg-to-png
+uv run python -m playwright install
 ```
+
+> **Note:** The `python -m playwright install` command is required to download the browser binaries that Playwright needs for rendering SVG content. Without this step, the plugin will fail to convert SVG files.
 
 Activate the plugin in `mkdocs.yml`:
 
@@ -48,37 +51,41 @@ You can customize the plugin's behavior in `mkdocs.yml`:
 ```yaml
 plugins:
   - svg-to-png:
+      enabled: true
+      enabled_if_env: null
       output_dir: "assets/images"
-      image_format: "png"
-      width: 1200
-      height: 800
-      scale: 2.0
+      dpi: 300
+      output_format: "png"
+      quality: 95
       background_color: "transparent"
       cache_enabled: true
+      cache_dir: ".svg_cache"
       preserve_original: false
       error_on_fail: false
-      verbose: false
+      log_level: "INFO"
       cleanup_generated_images: false
-      enabled_if_env: null
       temp_dir: null
 ```
 
 ### Configuration Parameters
 
+-   **`enabled`** (default: `true`)
+    -   Enable or disable the plugin
+
+-   **`enabled_if_env`** (default: `null`)
+    -   Environment variable name to conditionally enable the plugin. Only activates if the variable is set and non-empty
+
 -   **`output_dir`** (default: `"assets/images"`)
     -   Directory where generated PNG images will be saved, relative to your `docs` directory
 
--   **`image_format`** (default: `"png"`)
+-   **`dpi`** (default: `300`)
+    -   Resolution in dots per inch for generated PNG images
+
+-   **`output_format`** (default: `"png"`)
     -   Output format for generated images. Currently supports `png`
 
--   **`width`** (default: `1200`)
-    -   Width of the generated PNG images in pixels
-
--   **`height`** (default: `800`)
-    -   Height of the generated PNG images in pixels
-
--   **`scale`** (default: `2.0`)
-    -   Scale factor for high-resolution output (e.g., 2.0 for 2x resolution)
+-   **`quality`** (default: `95`)
+    -   Image quality setting (0-100). Higher values produce better quality but larger files
 
 -   **`background_color`** (default: `"transparent"`)
     -   Background color for generated images. Can be `"transparent"`, color names (e.g., `"white"`), or hex codes (e.g., `"#FFFFFF"`)
@@ -86,20 +93,20 @@ plugins:
 -   **`cache_enabled`** (default: `true`)
     -   Enable caching to avoid re-rendering unchanged SVG content
 
+-   **`cache_dir`** (default: `".svg_cache"`)
+    -   Directory for cache files, relative to your project root
+
 -   **`preserve_original`** (default: `false`)
     -   If `true`, keeps the original SVG code block alongside the generated PNG image
 
 -   **`error_on_fail`** (default: `false`)
     -   If `true`, stops the build when SVG conversion fails. If `false`, logs errors and continues
 
--   **`verbose`** (default: `false`)
-    -   Enable detailed logging for debugging
+-   **`log_level`** (default: `"INFO"`)
+    -   Logging level for the plugin. Options: `"DEBUG"`, `"INFO"`, `"WARNING"`, `"ERROR"`
 
 -   **`cleanup_generated_images`** (default: `false`)
     -   If `true`, removes generated PNG images after the build completes (useful for CI/CD)
-
--   **`enabled_if_env`** (default: `null`)
-    -   Environment variable name to conditionally enable the plugin. Only activates if the variable is set and non-empty
 
 -   **`temp_dir`** (default: `null`)
     -   Custom directory for temporary files. Uses system default if not specified
