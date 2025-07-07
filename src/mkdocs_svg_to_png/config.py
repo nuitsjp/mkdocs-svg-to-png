@@ -2,8 +2,6 @@ from typing import Any
 
 from mkdocs.config import config_options
 
-from .exceptions import SvgConfigError
-
 
 class SvgConfigManager:
     """Configuration manager for SVG to PNG conversion plugin."""
@@ -19,10 +17,6 @@ class SvgConfigManager:
             (
                 "output_dir",
                 config_options.Type(str, default="assets/images"),
-            ),
-            (
-                "output_format",
-                config_options.Choice(["png"], default="png"),
             ),
             (
                 "cache_enabled",
@@ -54,23 +48,5 @@ class SvgConfigManager:
 
     def validate(self, config: dict[str, Any]) -> dict[str, Any]:
         """Validate SVG conversion configuration."""
-        # Required parameters check
-        required_keys = ["output_format"]
-        for key in required_keys:
-            if key not in config:
-                raise SvgConfigError(
-                    f"Required configuration key '{key}' is missing",
-                    config_key=key,
-                    suggestion=f"Add '{key}' to your plugin configuration",
-                )
-
-        # Output format validation
-        if config["output_format"] not in ["png"]:
-            raise SvgConfigError(
-                "Unsupported output format",
-                config_key="output_format",
-                config_value=config["output_format"],
-                suggestion="Currently only 'png' output format is supported",
-            )
-
+        # No required parameters - all settings have defaults or are optional
         return config

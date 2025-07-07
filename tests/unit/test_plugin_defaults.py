@@ -40,7 +40,6 @@ class TestPluginDefaults:
         # 必須でないオプション（デフォルト値が必要）のリスト
         expected_defaults = {
             "output_dir": "assets/images",
-            "output_format": "png",
             "cache_enabled": True,
             "cache_dir": ".svg_cache",
             "preserve_original": False,

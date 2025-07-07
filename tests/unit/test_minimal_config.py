@@ -48,7 +48,6 @@ class TestMinimalConfig:
         # 期待される最小構成で動作に必要な項目
         essential_with_defaults = [
             "output_dir",  # 画像出力先
-            "output_format",  # 出力形式
             "cache_enabled",  # キャッシュ有効化
             "cache_dir",  # キャッシュディレクトリ
             "preserve_original",  # 元コード保持
@@ -84,10 +83,8 @@ class TestMinimalConfig:
 
     def test_最小設定での設定検証通過(self):
         """最小設定で設定検証が通過することを確認。"""
-        # 最小設定（必須項目のみデフォルト値）
-        minimal_config = {
-            "output_format": "png",
-        }
+        # 最小設定（必須項目なし、すべてオプショナル）
+        minimal_config = {}
 
         # 設定検証が成功することを確認
         result = SvgConfigManager().validate(minimal_config)

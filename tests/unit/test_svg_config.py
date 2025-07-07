@@ -2,10 +2,7 @@
 
 from __future__ import annotations
 
-import pytest
-
 from mkdocs_svg_to_png.config import SvgConfigManager
-from mkdocs_svg_to_png.exceptions import SvgConfigError
 
 
 class TestSvgConfigManager:
@@ -23,7 +20,6 @@ class TestSvgConfigManager:
         assert "log_level" in config_keys
 
         # SVG-specific options
-        assert "output_format" in config_keys
         assert "cache_enabled" in config_keys
 
         # Should NOT include Mermaid-specific options
@@ -45,14 +41,12 @@ class TestSvgConfigManager:
         }
 
         # Test SVG-specific defaults
-        assert defaults["output_format"] == "png"
         assert defaults["cache_enabled"] is True
         assert defaults["error_on_fail"] is False
 
     def test_validate_svg_config_valid(self):
         """Test validation of valid SVG configuration."""
         valid_config = {
-            "output_format": "png",
             "output_dir": "assets/images",
             "error_on_fail": False,
         }
@@ -61,32 +55,27 @@ class TestSvgConfigManager:
         result = SvgConfigManager().validate(valid_config)
         assert result == valid_config
 
-    def test_validate_svg_config_invalid_output_format(self):
-        """Test validation fails for unsupported output format."""
-        invalid_config = {
-            "output_format": "jpeg",  # Only png supported
-        }
+    def test_validate_svg_config_always_succeeds(self):
+        """Test validation always succeeds since no parameters are required."""
+        # Empty config should be valid
+        empty_config = {}
+        result = SvgConfigManager().validate(empty_config)
+        assert result == empty_config
 
-        with pytest.raises(SvgConfigError) as exc_info:
-            SvgConfigManager().validate(invalid_config)
+        # Any config should be valid
+        any_config = {"some_key": "some_value"}
+        result = SvgConfigManager().validate(any_config)
+        assert result == any_config
 
-        assert "Unsupported output format" in str(exc_info.value)
-        assert exc_info.value.details["config_key"] == "output_format"
-        assert exc_info.value.details["config_value"] == "jpeg"
+    def test_validate_svg_config_no_required_keys(self):
+        """Test that no configuration keys are required."""
+        # Since output_format is removed and hardcoded to PNG,
+        # no configuration keys should be required
+        incomplete_config = {}
 
-    def test_validate_svg_config_missing_required_key(self):
-        """Test validation fails for missing required configuration."""
-        incomplete_config = {
-            # Missing output_format
-        }
-
-        with pytest.raises(SvgConfigError) as exc_info:
-            SvgConfigManager().validate(incomplete_config)
-
-        assert "Required configuration key 'output_format' is missing" in str(
-            exc_info.value
-        )
-        assert exc_info.value.details["config_key"] == "output_format"
+        # Should not raise exception since no keys are required
+        result = SvgConfigManager().validate(incomplete_config)
+        assert result == incomplete_config
 
     def test_svg_config_scheme_types(self):
         """Test that config scheme has correct types."""
@@ -95,9 +84,6 @@ class TestSvgConfigManager:
 
         # Import the MkDocs config options for type checking
         from mkdocs.config import config_options
-
-        # Check that output_format is a choice option
-        assert isinstance(config_dict["output_format"], config_options.Choice)
 
         # Check that enabled_if_env is an optional string option
         assert isinstance(config_dict["enabled_if_env"], config_options.Optional)
@@ -112,7 +98,6 @@ class TestSvgConfigManager:
         config = {
             "enabled_if_env": None,
             "output_dir": "assets/images",
-            "output_format": "png",
             "cache_enabled": True,
             "cache_dir": ".svg_cache",
             "preserve_original": False,
@@ -167,3 +152,13 @@ class TestSvgConfigManager:
         assert (
             "enabled_if_env" in config_keys
         ), "'enabled_if_env' setting should remain in config schema"
+
+    def test_output_format_setting_removed_from_schema(self):
+        """Test that 'output_format' setting is removed from config schema."""
+        config_scheme = SvgConfigManager.get_config_scheme()
+        config_keys = {key for key, _ in config_scheme}
+
+        # 'output_format' should be removed since only PNG is supported
+        assert (
+            "output_format" not in config_keys
+        ), "'output_format' setting should be removed from config schema"

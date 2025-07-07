@@ -101,9 +101,7 @@ class SvgProcessor:
         self, block: Any, page_file: str, index: int, output_dir: Union[str, Path]
     ) -> Path:
         """画像パスを生成する"""
-        image_filename = str(
-            block.get_filename(page_file, index, self.config["output_format"])
-        )
+        image_filename = str(block.get_filename(page_file, index, "png"))
         return Path(str(output_dir)) / image_filename
 
     def _log_generation_failure(

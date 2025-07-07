@@ -77,7 +77,6 @@ plugins:
       enabled_if_env: null
       output_dir: "assets/images"
       dpi: 300
-      output_format: "png"
       quality: 95
       background_color: "transparent"
       cache_enabled: true
@@ -95,13 +94,10 @@ plugins:
     -   Environment variable name to conditionally enable the plugin. Only activates if the variable is set and non-empty. If not set, the plugin is enabled by default
 
 -   **`output_dir`** (default: `"assets/images"`)
-    -   Directory where generated PNG images will be saved, relative to your `docs` directory
+    -   Directory where generated PNG images will be saved, relative to your `docs` directory. All images are generated in PNG format
 
 -   **`dpi`** (default: `300`)
     -   Resolution in dots per inch for generated PNG images
-
--   **`output_format`** (default: `"png"`)
-    -   Output format for generated images. Currently supports `png`
 
 -   **`quality`** (default: `95`)
     -   Image quality setting (0-100). Higher values produce better quality but larger files

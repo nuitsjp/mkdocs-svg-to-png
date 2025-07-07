@@ -20,7 +20,6 @@ class TestSvgProcessor:
         """テスト用の基本設定を返すfixture"""
         return {
             "output_dir": "assets/images",
-            "output_format": "png",
             "preserve_original": False,
             "error_on_fail": False,
             "log_level": "INFO",
@@ -144,7 +143,6 @@ print("Hello")
         """SVGファイル参照でdocs_base_pathが必要なケースをテスト"""
         config = {
             "output_dir": "assets/images",
-            "output_format": "png",
             "preserve_original": False,
             "error_on_fail": False,
             "log_level": "INFO",
@@ -187,7 +185,6 @@ print("Hello")
         """SVGファイルパス解決にdocs_dirが必要なケースのテスト"""
         config = {
             "output_dir": "assets/images",
-            "output_format": "png",
             "preserve_original": False,
             "error_on_fail": False,
             "log_level": "INFO",

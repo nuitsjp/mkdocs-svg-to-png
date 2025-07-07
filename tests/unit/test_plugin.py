@@ -7,7 +7,6 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from mkdocs_svg_to_png.exceptions import SvgConfigError
 from mkdocs_svg_to_png.plugin import SvgToPngPlugin
 
 
@@ -50,7 +49,6 @@ class TestSvgToPngPlugin:
             "enabled": True,
             "output_dir": "assets/images",
             "image_format": "png",
-            "output_format": "png",
             "preserve_original": False,
             "error_on_fail": False,
             "log_level": "INFO",
@@ -71,7 +69,6 @@ class TestSvgToPngPlugin:
             "enabled_if_env": "NONEXISTENT_ENV",
             "output_dir": "assets/images",
             "image_format": "png",
-            "output_format": "png",
             "preserve_original": False,
             "error_on_fail": False,
             "log_level": "INFO",
@@ -82,17 +79,6 @@ class TestSvgToPngPlugin:
             result = plugin.on_config(mock_config)
             assert result == mock_config
             assert plugin.processor is None
-
-    def test_config_validation_invalid_output_format(self, plugin, mock_config):
-        """出力形式が不正な場合に例外が発生するかテスト"""
-        plugin.config = {
-            "enabled": True,
-            "output_format": "jpeg",  # 不正な形式
-            "log_level": "INFO",
-        }
-
-        with pytest.raises(SvgConfigError):
-            plugin.on_config(mock_config)
 
     def test_on_files_disabled(self, plugin):
         """プラグイン無効時のon_filesの挙動をテスト"""

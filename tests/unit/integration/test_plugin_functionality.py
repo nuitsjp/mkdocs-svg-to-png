@@ -54,7 +54,7 @@ def test_config_validation():
         "output_path": "assets/images",
         "dpi": 150,
         "quality": 90,
-        "output_format": "png",  # Add missing required key
+        # Configuration for processor
     }
     # This test might need adjustment depending on the new config structure
     # For now, we assume a simple validation check
@@ -87,7 +87,6 @@ def test_serve_mode_integration():
             "log_level": "INFO",
             "dpi": 150,
             "quality": 90,
-            "output_format": "png",
         }
 
         # プロセッサを模擬（実際には初期化されない想定）
@@ -142,7 +141,6 @@ def test_build_mode_integration():
             "error_on_fail": False,
             "dpi": 150,
             "quality": 90,
-            "output_format": "png",
         }
 
         # プロセッサを模擬して成功ケースを再現
