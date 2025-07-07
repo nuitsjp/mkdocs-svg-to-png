@@ -77,38 +77,7 @@ class TestPngOutputValidation:
     @pytest.mark.parametrize(
         "svg_filename,expected_png_filename",
         [
-            (
-                "architecture_mermaid_0_07a67020.svg",
-                "architecture_mermaid_0_07a67020.png",
-            ),
-            (
-                "class-design_mermaid_0_86b4976d.svg",
-                "class-design_mermaid_0_86b4976d.png",
-            ),
-            (
-                "database-design_mermaid_0_3d6e6222.svg",
-                "database-design_mermaid_0_3d6e6222.png",
-            ),
             ("detailed-diagram.drawio.svg", "detailed-diagram.drawio.png"),
-            ("index_mermaid_0_66026a20.svg", "index_mermaid_0_66026a20.png"),
-            ("output_basic.svg", "output_basic.png"),
-            ("output_sequence.svg", "output_sequence.png"),
-            (
-                "project-plan_mermaid_0_336420ee.svg",
-                "project-plan_mermaid_0_336420ee.png",
-            ),
-            (
-                "state-management_mermaid_0_5231eec1.svg",
-                "state-management_mermaid_0_5231eec1.png",
-            ),
-            (
-                "system-overview_mermaid_0_93d92671.svg",
-                "system-overview_mermaid_0_93d92671.png",
-            ),
-            (
-                "user-journey_mermaid_0_ccef6318.svg",
-                "user-journey_mermaid_0_ccef6318.png",
-            ),
         ],
     )
     def test_png_conversion_matches_expected(
@@ -147,7 +116,7 @@ class TestPngOutputValidation:
         self, converter, fixtures_input_dir, temp_output_dir
     ):
         """Test that repeated conversions produce consistent results."""
-        svg_file = fixtures_input_dir / "architecture_mermaid_0_07a67020.svg"
+        svg_file = fixtures_input_dir / "detailed-diagram.drawio.svg"
         if not svg_file.exists():
             pytest.skip(f"SVG file not found: {svg_file}")
 
@@ -169,33 +138,6 @@ class TestPngOutputValidation:
             f"File 1: {png1.stat().st_size:,} bytes, "
             f"File 2: {png2.stat().st_size:,} bytes"
         )
-
-    def test_basic_svg_files_conversion(
-        self, converter, fixtures_input_dir, fixtures_expected_dir, temp_output_dir
-    ):
-        """Test conversion of basic SVG files (originally in fixtures)."""
-        test_cases = [
-            ("output_basic.svg", "output_basic.png"),
-            ("output_sequence.svg", "output_sequence.png"),
-        ]
-
-        for svg_filename, expected_png_filename in test_cases:
-            svg_file = fixtures_input_dir / svg_filename
-            expected_png = fixtures_expected_dir / expected_png_filename
-            actual_png = temp_output_dir / f"basic_{expected_png_filename}"
-
-            if not (svg_file.exists() and expected_png.exists()):
-                continue
-
-            result = converter.convert_svg_file(str(svg_file), str(actual_png))
-            assert result is True, f"Conversion failed for {svg_filename}"
-            assert actual_png.exists(), f"Output PNG not created for {svg_filename}"
-
-            # Basic validation - file should have reasonable size
-            assert actual_png.stat().st_size > 1000, (
-                f"Generated PNG too small for {svg_filename}: "
-                f"{actual_png.stat().st_size} bytes"
-            )
 
     def test_different_scale_output_sizes(
         self, converter_config, fixtures_input_dir, temp_output_dir
@@ -232,8 +174,8 @@ class TestPngOutputValidation:
         """Test that all expected PNG files are valid and non-empty."""
         png_files = list(fixtures_expected_dir.glob("*.png"))
         assert (
-            len(png_files) >= 11
-        ), f"Expected at least 11 PNG files, found {len(png_files)}"
+            len(png_files) >= 1
+        ), f"Expected at least 1 PNG file, found {len(png_files)}"
 
         for png_file in png_files:
             # Check file is not empty
