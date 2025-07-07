@@ -68,7 +68,7 @@ class TestSvgToPngPlugin:
     def test_config_validation_disabled_plugin(self, plugin, mock_config):
         """プラグインが無効な場合にprocessorがNoneになるかテスト"""
         plugin.config = {
-            "enabled": False,
+            "enabled_if_env": "NONEXISTENT_ENV",
             "output_dir": "assets/images",
             "image_format": "png",
             "output_format": "png",

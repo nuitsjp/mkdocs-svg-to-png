@@ -74,7 +74,6 @@ You can customize the plugin's behavior in `mkdocs.yml`:
 ```yaml
 plugins:
   - svg-to-png:
-      enabled: true
       enabled_if_env: null
       output_dir: "assets/images"
       dpi: 300
@@ -92,11 +91,8 @@ plugins:
 
 ### Configuration Parameters
 
--   **`enabled`** (default: `true`)
-    -   Enable or disable the plugin
-
 -   **`enabled_if_env`** (default: `null`)
-    -   Environment variable name to conditionally enable the plugin. Only activates if the variable is set and non-empty
+    -   Environment variable name to conditionally enable the plugin. Only activates if the variable is set and non-empty. If not set, the plugin is enabled by default
 
 -   **`output_dir`** (default: `"assets/images"`)
     -   Directory where generated PNG images will be saved, relative to your `docs` directory

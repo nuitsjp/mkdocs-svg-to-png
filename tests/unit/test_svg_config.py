@@ -17,7 +17,6 @@ class TestSvgConfigManager:
         config_keys = {key for key, _ in config_scheme}
 
         # Basic plugin options
-        assert "enabled" in config_keys
         assert "enabled_if_env" in config_keys
         assert "output_dir" in config_keys
         assert "error_on_fail" in config_keys
@@ -53,7 +52,6 @@ class TestSvgConfigManager:
     def test_validate_svg_config_valid(self):
         """Test validation of valid SVG configuration."""
         valid_config = {
-            "enabled": True,
             "output_format": "png",
             "output_dir": "assets/images",
             "error_on_fail": False,
@@ -66,7 +64,6 @@ class TestSvgConfigManager:
     def test_validate_svg_config_invalid_output_format(self):
         """Test validation fails for unsupported output format."""
         invalid_config = {
-            "enabled": True,
             "output_format": "jpeg",  # Only png supported
         }
 
@@ -80,7 +77,6 @@ class TestSvgConfigManager:
     def test_validate_svg_config_missing_required_key(self):
         """Test validation fails for missing required configuration."""
         incomplete_config = {
-            "enabled": True,
             # Missing output_format
         }
 
@@ -103,8 +99,8 @@ class TestSvgConfigManager:
         # Check that output_format is a choice option
         assert isinstance(config_dict["output_format"], config_options.Choice)
 
-        # Check that enabled is a boolean option
-        assert isinstance(config_dict["enabled"], config_options.Type)
+        # Check that enabled_if_env is an optional string option
+        assert isinstance(config_dict["enabled_if_env"], config_options.Optional)
 
     def test_config_without_unused_settings(self):
         """Test that unused settings should be removed.
@@ -114,7 +110,6 @@ class TestSvgConfigManager:
         """
         # Create config without unused settings
         config = {
-            "enabled": True,
             "enabled_if_env": None,
             "output_dir": "assets/images",
             "output_format": "png",
@@ -157,3 +152,18 @@ class TestSvgConfigManager:
             assert (
                 setting not in config_keys
             ), f"Unused setting '{setting}' should be removed from config schema"
+
+    def test_enabled_setting_removed_from_schema(self):
+        """Test that 'enabled' setting is removed from config schema."""
+        config_scheme = SvgConfigManager.get_config_scheme()
+        config_keys = {key for key, _ in config_scheme}
+
+        # 'enabled' should be removed as it's redundant with 'enabled_if_env'
+        assert (
+            "enabled" not in config_keys
+        ), "'enabled' setting should be removed from config schema as it's redundant"
+
+        # 'enabled_if_env' should still be present
+        assert (
+            "enabled_if_env" in config_keys
+        ), "'enabled_if_env' setting should remain in config schema"

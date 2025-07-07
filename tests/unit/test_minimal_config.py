@@ -20,19 +20,20 @@ class TestMinimalConfig:
                     "enabled_if_env",
                 ], f"{config_name} should have a default value"
 
-    def test_enabled_デフォルトTrue_で動作(self):
-        """enabled オプション未指定時にTrueになることを確認。"""
+    def test_enabled_if_env_がオプショナル設定である(self):
+        """enabled_if_env オプションがオプショナル設定であることを確認。"""
         plugin = SvgToPngPlugin()
 
-        # enabled設定を確認
-        enabled_config = None
+        # enabled_if_env設定を確認
+        enabled_if_env_config = None
         for config_name, config_option in plugin.config_scheme:
-            if config_name == "enabled":
-                enabled_config = config_option
+            if config_name == "enabled_if_env":
+                enabled_if_env_config = config_option
                 break
 
-        assert enabled_config is not None
-        assert enabled_config.default is True
+        assert enabled_if_env_config is not None
+        # Optional設定であることを確認
+        assert str(type(enabled_if_env_config)).find("Optional") != -1
 
     def test_必須設定項目以外は全てデフォルト値を持つ(self):
         """必須設定項目以外は全てデフォルト値を持ち、最小構成で動作することを確認。"""
@@ -46,7 +47,6 @@ class TestMinimalConfig:
 
         # 期待される最小構成で動作に必要な項目
         essential_with_defaults = [
-            "enabled",  # プラグインの有効化
             "output_dir",  # 画像出力先
             "output_format",  # 出力形式
             "cache_enabled",  # キャッシュ有効化

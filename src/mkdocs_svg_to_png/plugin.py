@@ -43,8 +43,8 @@ class SvgToPngPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped-call]
             env_value = os.environ.get(enabled_if_env)
             return env_value is not None and env_value.strip() != ""
 
-        # enabled_if_envが設定されていない場合は通常のenabled設定に従う
-        return bool(config.get("enabled", True))
+        # enabled_if_envが設定されていない場合はデフォルトで有効
+        return True
 
     def on_config(self, config: Any) -> Any:
         try:
