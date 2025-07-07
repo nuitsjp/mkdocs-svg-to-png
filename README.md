@@ -2,7 +2,7 @@
 
 [![PyPI - Python Version][python-image]][pypi-link]
 
-An MkDocs plugin to convert SVG files to PNG images.
+An MkDocs plugin to convert SVG files to PNG images using Playwright.
 
 This plugin finds SVG code blocks and image references and converts them to PNG images during the MkDocs build process. This is useful for formats that don't support SVG directly, like PDF, or for ensuring consistent image rendering across different environments.
 
@@ -10,20 +10,12 @@ This plugin finds SVG code blocks and image references and converts them to PNG 
 
 ## Requirements
 
-This plugin requires `CairoSVG` and its dependencies. Please ensure you have them installed:
+This plugin requires Python 3.9+ and automatically installs the following dependencies:
 
-```bash
-pip install cairosvg
-```
-
-CairoSVG itself has some system-level dependencies (like `cairo`, `pango`, `gdk-pixbuf`). On Debian/Ubuntu, you can install them using:
-
-```bash
-sudo apt-get update
-sudo apt-get install libcairo2-dev libffi-dev libgdk-pixbuf2.0-dev libpango1.0-dev
-```
-
-For other operating systems, please refer to the [CairoSVG documentation](https://cairosvg.org/documentation/#installation).
+- **Playwright** (for SVG to PNG conversion)
+- **Pillow** (for image processing)
+- **NumPy** (for image data manipulation)
+- **defusedxml** (for secure XML parsing)
 
 ## Setup
 
@@ -31,6 +23,12 @@ Install the plugin using pip:
 
 ```bash
 pip install mkdocs-svg-to-png
+```
+
+If you're using **uv** (recommended for development):
+
+```bash
+uv add mkdocs-svg-to-png
 ```
 
 Activate the plugin in `mkdocs.yml`:
@@ -43,7 +41,7 @@ plugins:
 
 > **Note:** If you have no `plugins` entry in your config file yet, you'll likely also want to add the `search` plugin. MkDocs enables it by default if there is no `plugins` entry set, but now you have to enable it explicitly.
 
-## Options
+## Configuration Options
 
 You can customize the plugin's behavior in `mkdocs.yml`:
 
@@ -52,58 +50,88 @@ plugins:
   - svg-to-png:
       output_dir: "assets/images"
       image_format: "png"
-      dpi: 300
-      quality: 95
+      width: 1200
+      height: 800
+      scale: 2.0
       background_color: "transparent"
       cache_enabled: true
-      cache_dir: ".svg_cache"
       preserve_original: false
       error_on_fail: false
-      log_level: "INFO"
+      verbose: false
       cleanup_generated_images: false
       enabled_if_env: null
       temp_dir: null
 ```
 
--   `output_dir`:
-    -   Defaults to `assets/images`.
-    -   The directory where generated PNG images will be saved, relative to your `docs` directory.
--   `image_format`:
-    -   Defaults to `png`.
-    -   The output format for the generated images. Currently, only `png` is supported.
--   `dpi`:
-    -   Defaults to `300`.
-    -   The Dots Per Inch (DPI) for rendering SVG to PNG. Higher values result in larger, higher-resolution images.
--   `quality`:
-    -   Defaults to `95`.
-    -   The quality of the output PNG image, a value between 0 (lowest) and 100 (highest). Only applicable for PNG output.
--   `background_color`:
-    -   Defaults to `transparent`.
-    -   The background color for the generated PNG images. Can be a color name (e.g., `white`), a hex code (e.g., `#FFFFFF`), or `transparent`.
--   `cache_enabled`:
-    -   Defaults to `true`.
-    -   If `true`, generated images will be cached to avoid re-rendering on subsequent builds if the SVG content hasn't changed.
--   `cache_dir`:
-    -   Defaults to `.svg_cache`.
-    -   The directory where cached images are stored, relative to the project root.
--   `preserve_original`:
-    -   Defaults to `false`.
-    -   If `true`, the original SVG code block or image reference will be preserved in the Markdown output, in addition to the generated PNG image.
--   `error_on_fail`:
-    -   Defaults to `false`.
-    -   If `true`, the MkDocs build will fail if any SVG to PNG conversion encounters an error. If `false`, errors will be logged, and the original SVG content will be kept.
--   `log_level`:
-    -   Defaults to `INFO`.
-    -   Sets the logging level for the plugin. Can be `DEBUG`, `INFO`, `WARNING`, or `ERROR`.
--   `cleanup_generated_images`:
-    -   Defaults to `false`.
-    -   If `true`, generated PNG images will be removed from the `output_dir` after the MkDocs build is complete. This is useful for CI/CD pipelines.
--   `enabled_if_env`:
-    -   Defaults to `null`.
-    -   If set to an environment variable name, the plugin will only be enabled if that environment variable is set to a non-empty value. Useful for conditional builds (e.g., only enable for PDF builds).
--   `temp_dir`:
-    -   Defaults to `null`.
-    -   Specifies a directory for temporary files created during the conversion process. If `null`, the system's default temporary directory will be used.
+### Configuration Parameters
+
+-   **`output_dir`** (default: `"assets/images"`)
+    -   Directory where generated PNG images will be saved, relative to your `docs` directory
+
+-   **`image_format`** (default: `"png"`)
+    -   Output format for generated images. Currently supports `png`
+
+-   **`width`** (default: `1200`)
+    -   Width of the generated PNG images in pixels
+
+-   **`height`** (default: `800`)
+    -   Height of the generated PNG images in pixels
+
+-   **`scale`** (default: `2.0`)
+    -   Scale factor for high-resolution output (e.g., 2.0 for 2x resolution)
+
+-   **`background_color`** (default: `"transparent"`)
+    -   Background color for generated images. Can be `"transparent"`, color names (e.g., `"white"`), or hex codes (e.g., `"#FFFFFF"`)
+
+-   **`cache_enabled`** (default: `true`)
+    -   Enable caching to avoid re-rendering unchanged SVG content
+
+-   **`preserve_original`** (default: `false`)
+    -   If `true`, keeps the original SVG code block alongside the generated PNG image
+
+-   **`error_on_fail`** (default: `false`)
+    -   If `true`, stops the build when SVG conversion fails. If `false`, logs errors and continues
+
+-   **`verbose`** (default: `false`)
+    -   Enable detailed logging for debugging
+
+-   **`cleanup_generated_images`** (default: `false`)
+    -   If `true`, removes generated PNG images after the build completes (useful for CI/CD)
+
+-   **`enabled_if_env`** (default: `null`)
+    -   Environment variable name to conditionally enable the plugin. Only activates if the variable is set and non-empty
+
+-   **`temp_dir`** (default: `null`)
+    -   Custom directory for temporary files. Uses system default if not specified
+
+## Development
+
+### Prerequisites
+
+- Python 3.9+
+- [uv](https://github.com/astral-sh/uv) (recommended package manager)
+
+### Development Commands
+
+```bash
+# Setup development environment
+make setup
+
+# Run tests
+make test
+
+# Run tests with coverage
+make test-cov
+
+# Code quality checks
+make check
+
+# Build documentation
+make build
+
+# Serve documentation locally
+make serve
+```
 
 [pypi-link]: https://pypi.org/project/mkdocs-svg-to-png/
 [python-image]: https://img.shields.io/pypi/pyversions/mkdocs-svg-to-png?logo=python&logoColor=aaaaaa&labelColor=333333
