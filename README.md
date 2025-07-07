@@ -4,7 +4,9 @@
 
 An MkDocs plugin to convert SVG files to PNG images using Playwright.
 
-This plugin finds SVG code blocks and image references and converts them to PNG images during the MkDocs build process. This is useful for formats that don't support SVG directly, like PDF, or for ensuring consistent image rendering across different environments.
+This plugin finds SVG code blocks and image references and converts them to PNG images during the MkDocs build process. While PDF formats do support SVG, some SVG content may not render correctly when using [mkdocs-to-pdf](https://github.com/domWalters/mkdocs-to-pdf) for PDF generation. This plugin ensures consistent, high-quality rendering by converting SVG to PNG images before PDF creation.
+
+**Primary use case**: Works seamlessly with [mkdocs-mermaid-to-image](https://github.com/nuitsjp/mkdocs-mermaid-to-image) to create a complete pipeline for Mermaid diagrams → SVG → PNG → PDF without external services.
 
 - [Documents](https://thankful-beach-0f331f600.1.azurestaticapps.net/)
 
@@ -38,11 +40,32 @@ Activate the plugin in `mkdocs.yml`:
 
 ```yaml
 plugins:
-  - search
-  - svg-to-png
+  - mermaid-to-image:
+      enabled_if_env: ENABLE_PDF_EXPORT
+  - svg-to-png:
+      enabled_if_env: ENABLE_PDF_EXPORT
+  - to-pdf:
+      enabled_if_env: ENABLE_PDF_EXPORT
 ```
 
-> **Note:** If you have no `plugins` entry in your config file yet, you'll likely also want to add the `search` plugin. MkDocs enables it by default if there is no `plugins` entry set, but now you have to enable it explicitly.
+This creates a complete pipeline:
+1. **mermaid-to-image** converts Mermaid diagrams to SVG
+2. **svg-to-png** converts SVG to high-quality PNG images
+3. **to-pdf** generates PDF with properly rendered diagrams
+
+## Development Workflow
+
+For optimal development experience, use `enabled_if_env` to conditionally enable plugins:
+
+```bash
+# Development: Fast preview without image conversion
+mkdocs serve
+
+# Production: Build with image conversion and PDF generation
+ENABLE_PDF_EXPORT=1 mkdocs build
+```
+
+This approach ensures fast iteration during development while maintaining high-quality output for production builds.
 
 ## Configuration Options
 
@@ -113,32 +136,7 @@ plugins:
 
 ## Development
 
-### Prerequisites
-
-- Python 3.9+
-- [uv](https://github.com/astral-sh/uv) (recommended package manager)
-
-### Development Commands
-
-```bash
-# Setup development environment
-make setup
-
-# Run tests
-make test
-
-# Run tests with coverage
-make test-cov
-
-# Code quality checks
-make check
-
-# Build documentation
-make build
-
-# Serve documentation locally
-make serve
-```
+See [Development Guide](docs/development.md) for detailed development instructions.
 
 [pypi-link]: https://pypi.org/project/mkdocs-svg-to-png/
 [python-image]: https://img.shields.io/pypi/pyversions/mkdocs-svg-to-png?logo=python&logoColor=aaaaaa&labelColor=333333
