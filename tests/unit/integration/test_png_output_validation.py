@@ -77,7 +77,11 @@ class TestPngOutputValidation:
     @pytest.mark.parametrize(
         "svg_filename,expected_png_filename",
         [
-            ("detailed-diagram.drawio.svg", "detailed-diagram.drawio.png"),
+            ("detailed-diagram-red.drawio.svg", "detailed-diagram-red.drawio.png"),
+            (
+                "detailed-diagram-transparent.drawio.svg",
+                "detailed-diagram-transparent.drawio.png",
+            ),
         ],
     )
     def test_png_conversion_matches_expected(
@@ -116,7 +120,7 @@ class TestPngOutputValidation:
         self, converter, fixtures_input_dir, temp_output_dir
     ):
         """Test that repeated conversions produce consistent results."""
-        svg_file = fixtures_input_dir / "detailed-diagram.drawio.svg"
+        svg_file = fixtures_input_dir / "detailed-diagram-red.drawio.svg"
         if not svg_file.exists():
             pytest.skip(f"SVG file not found: {svg_file}")
 
@@ -143,7 +147,7 @@ class TestPngOutputValidation:
         self, converter_config, fixtures_input_dir, temp_output_dir
     ):
         """Test that different scales produce appropriately sized outputs."""
-        svg_file = fixtures_input_dir / "detailed-diagram.drawio.svg"
+        svg_file = fixtures_input_dir / "detailed-diagram-red.drawio.svg"
         if not svg_file.exists():
             pytest.skip(f"SVG file not found: {svg_file}")
 

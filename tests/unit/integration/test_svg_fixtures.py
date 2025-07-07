@@ -47,7 +47,7 @@ class TestSvgFixturesIntegration:
         self, converter, fixtures_input_dir, temp_output_dir
     ):
         """Test conversion of detailed diagram (main SVG conversion test)."""
-        svg_file = fixtures_input_dir / "detailed-diagram.drawio.svg"
+        svg_file = fixtures_input_dir / "detailed-diagram-red.drawio.svg"
         output_file = temp_output_dir / "detailed_diagram_test.png"
 
         if not svg_file.exists():
