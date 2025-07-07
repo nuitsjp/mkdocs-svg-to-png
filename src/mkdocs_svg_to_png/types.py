@@ -15,9 +15,6 @@ ImageFormat = Literal["png", "svg"]
 class PluginConfigDict(TypedDict, total=False):
     output_dir: str
     image_format: ImageFormat
-    dpi: int
-    quality: int
-    background_color: str
     cache_enabled: bool
     cache_dir: str
     preserve_original: bool
@@ -25,7 +22,6 @@ class PluginConfigDict(TypedDict, total=False):
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"]
     cleanup_generated_images: bool
     enabled_if_env: str
-    temp_dir: str
 
 
 class SvgBlockDict(TypedDict):

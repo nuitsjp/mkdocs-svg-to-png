@@ -142,6 +142,11 @@ class SvgToPngConverter:
     ) -> bool:
         """Convert SVG content to PNG using Playwright browser engine.
 
+        The conversion preserves the SVG's background settings:
+        - If SVG has transparent background, PNG will have transparent background
+        - If SVG has colored background, PNG will preserve that color
+        - If SVG has no background specified, PNG will have transparent background
+
         Args:
             svg_content: String containing SVG markup
             output_path: Path where PNG file should be saved
@@ -180,7 +185,6 @@ class SvgToPngConverter:
                         body {{
                             margin: 0;
                             padding: 0;
-                            background: white;
                             width: {scaled_width}px;
                             height: {scaled_height}px;
                         }}
@@ -202,8 +206,10 @@ class SvgToPngConverter:
                 # Wait for SVG to render
                 await page.wait_for_load_state("networkidle")
 
-                # Take screenshot
-                await page.screenshot(path=output_path, full_page=True)
+                # Take screenshot with transparent background
+                await page.screenshot(
+                    path=output_path, full_page=True, omit_background=True
+                )
 
                 return True
 

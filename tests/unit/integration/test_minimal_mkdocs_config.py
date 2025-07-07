@@ -24,10 +24,7 @@ class TestMinimalMkDocsConfig:
         # 必須設定項目がデフォルト値で設定されていることを確認
         assert plugin.config["enabled"] is True
         assert plugin.config["output_dir"] == "assets/images"
-        assert plugin.config["dpi"] == 300
         assert plugin.config["output_format"] == "png"
-        assert plugin.config["quality"] == 95
-        assert plugin.config["background_color"] == "transparent"
         assert plugin.config["cache_enabled"] is True
         assert plugin.config["cache_dir"] == ".svg_cache"
         assert plugin.config["preserve_original"] is False
@@ -36,7 +33,6 @@ class TestMinimalMkDocsConfig:
 
         # オプショナル設定項目はNoneになっていることを確認
         assert plugin.config["enabled_if_env"] is None
-        assert plugin.config["temp_dir"] is None
 
     def test_最小構成でon_config_が成功する(self):
         """最小構成でon_configフックが成功することを確認。"""

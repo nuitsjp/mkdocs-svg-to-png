@@ -50,8 +50,6 @@ class TestSvgToPngPlugin:
             "enabled": True,
             "output_dir": "assets/images",
             "image_format": "png",
-            "dpi": 150,
-            "quality": 90,
             "output_format": "png",
             "preserve_original": False,
             "error_on_fail": False,
@@ -73,8 +71,6 @@ class TestSvgToPngPlugin:
             "enabled": False,
             "output_dir": "assets/images",
             "image_format": "png",
-            "dpi": 150,
-            "quality": 90,
             "output_format": "png",
             "preserve_original": False,
             "error_on_fail": False,
@@ -87,13 +83,11 @@ class TestSvgToPngPlugin:
             assert result == mock_config
             assert plugin.processor is None
 
-    def test_config_validation_invalid_dpi(self, plugin, mock_config):
-        """DPIが不正な場合に例外が発生するかテスト"""
+    def test_config_validation_invalid_output_format(self, plugin, mock_config):
+        """出力形式が不正な場合に例外が発生するかテスト"""
         plugin.config = {
             "enabled": True,
-            "dpi": -100,
-            "quality": 90,
-            "output_format": "png",
+            "output_format": "jpeg",  # 不正な形式
             "log_level": "INFO",
         }
 

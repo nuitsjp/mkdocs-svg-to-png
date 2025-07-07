@@ -17,7 +17,6 @@ class TestMinimalConfig:
             if hasattr(config_option, "default"):
                 # デフォルト値が設定されている
                 assert config_option.default is not None or config_name in [
-                    "temp_dir",
                     "enabled_if_env",
                 ], f"{config_name} should have a default value"
 
@@ -49,10 +48,7 @@ class TestMinimalConfig:
         essential_with_defaults = [
             "enabled",  # プラグインの有効化
             "output_dir",  # 画像出力先
-            "dpi",  # DPI
             "output_format",  # 出力形式
-            "quality",  # 品質
-            "background_color",  # 背景色
             "cache_enabled",  # キャッシュ有効化
             "cache_dir",  # キャッシュディレクトリ
             "preserve_original",  # 元コード保持
@@ -72,7 +68,6 @@ class TestMinimalConfig:
 
         # オプショナル設定項目
         optional_settings = [
-            "temp_dir",  # 一時ディレクトリ
             "enabled_if_env",  # 環境変数による有効化
         ]
 
@@ -91,9 +86,7 @@ class TestMinimalConfig:
         """最小設定で設定検証が通過することを確認。"""
         # 最小設定（必須項目のみデフォルト値）
         minimal_config = {
-            "dpi": 300,
             "output_format": "png",
-            "quality": 95,
         }
 
         # 設定検証が成功することを確認

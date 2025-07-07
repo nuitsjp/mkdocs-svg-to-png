@@ -24,10 +24,7 @@ class TestSvgConfigManager:
         assert "log_level" in config_keys
 
         # SVG-specific options
-        assert "dpi" in config_keys
         assert "output_format" in config_keys
-        assert "quality" in config_keys
-        assert "background_color" in config_keys
         assert "cache_enabled" in config_keys
 
         # Should NOT include Mermaid-specific options
@@ -49,10 +46,7 @@ class TestSvgConfigManager:
         }
 
         # Test SVG-specific defaults
-        assert defaults["dpi"] == 300
         assert defaults["output_format"] == "png"
-        assert defaults["quality"] == 95
-        assert defaults["background_color"] == "transparent"
         assert defaults["cache_enabled"] is True
         assert defaults["error_on_fail"] is False
 
@@ -60,10 +54,7 @@ class TestSvgConfigManager:
         """Test validation of valid SVG configuration."""
         valid_config = {
             "enabled": True,
-            "dpi": 300,
             "output_format": "png",
-            "quality": 95,
-            "background_color": "white",
             "output_dir": "assets/images",
             "error_on_fail": False,
         }
@@ -72,45 +63,11 @@ class TestSvgConfigManager:
         result = SvgConfigManager().validate(valid_config)
         assert result == valid_config
 
-    def test_validate_svg_config_invalid_dpi(self):
-        """Test validation fails for invalid DPI."""
-        invalid_config = {
-            "enabled": True,
-            "dpi": 0,
-            "output_format": "png",
-            "quality": 95,
-        }
-
-        with pytest.raises(SvgConfigError) as exc_info:
-            SvgConfigManager().validate(invalid_config)
-
-        assert "DPI must be a positive integer" in str(exc_info.value)
-        assert exc_info.value.details["config_key"] == "dpi"
-        assert exc_info.value.details["config_value"] == 0
-
-    def test_validate_svg_config_invalid_quality(self):
-        """Test validation fails for invalid quality."""
-        invalid_config = {
-            "enabled": True,
-            "dpi": 300,
-            "output_format": "png",
-            "quality": 150,  # Should be 0-100
-        }
-
-        with pytest.raises(SvgConfigError) as exc_info:
-            SvgConfigManager().validate(invalid_config)
-
-        assert "Quality must be between 0 and 100" in str(exc_info.value)
-        assert exc_info.value.details["config_key"] == "quality"
-        assert exc_info.value.details["config_value"] == 150
-
     def test_validate_svg_config_invalid_output_format(self):
         """Test validation fails for unsupported output format."""
         invalid_config = {
             "enabled": True,
-            "dpi": 300,
             "output_format": "jpeg",  # Only png supported
-            "quality": 95,
         }
 
         with pytest.raises(SvgConfigError) as exc_info:
@@ -124,16 +81,16 @@ class TestSvgConfigManager:
         """Test validation fails for missing required configuration."""
         incomplete_config = {
             "enabled": True,
-            # Missing dpi
-            "output_format": "png",
-            "quality": 95,
+            # Missing output_format
         }
 
         with pytest.raises(SvgConfigError) as exc_info:
             SvgConfigManager().validate(incomplete_config)
 
-        assert "Required configuration key 'dpi' is missing" in str(exc_info.value)
-        assert exc_info.value.details["config_key"] == "dpi"
+        assert "Required configuration key 'output_format' is missing" in str(
+            exc_info.value
+        )
+        assert exc_info.value.details["config_key"] == "output_format"
 
     def test_svg_config_scheme_types(self):
         """Test that config scheme has correct types."""
@@ -143,11 +100,60 @@ class TestSvgConfigManager:
         # Import the MkDocs config options for type checking
         from mkdocs.config import config_options
 
-        # Check that dpi is an integer option
-        assert isinstance(config_dict["dpi"], config_options.Type)
-
         # Check that output_format is a choice option
         assert isinstance(config_dict["output_format"], config_options.Choice)
 
         # Check that enabled is a boolean option
         assert isinstance(config_dict["enabled"], config_options.Type)
+
+    def test_config_without_unused_settings(self):
+        """Test that unused settings should be removed.
+
+        This test initially fails to verify these settings exist,
+        then will pass after they are removed from the config schema.
+        """
+        # Create config without unused settings
+        config = {
+            "enabled": True,
+            "enabled_if_env": None,
+            "output_dir": "assets/images",
+            "output_format": "png",
+            "cache_enabled": True,
+            "cache_dir": ".svg_cache",
+            "preserve_original": False,
+            "error_on_fail": False,
+            "log_level": "INFO",
+            "cleanup_generated_images": False,
+        }
+
+        # Currently this test will fail because validation requires dpi, quality
+        # After removal, this should pass
+        manager = SvgConfigManager()
+
+        # This should not raise an exception after unused settings are removed
+        try:
+            result = manager.validate(config)
+            # If validation passes, unused settings have been successfully removed
+            assert result == config
+            unused_settings_removed = True
+        except Exception:
+            # If validation fails, unused settings are still present
+            unused_settings_removed = False
+
+        # After removal, unused settings should not be required anymore
+        assert (
+            unused_settings_removed
+        ), "Config validation should pass without unused settings"
+
+    def test_unused_settings_removed_from_schema(self):
+        """Test that unused settings are completely removed from config schema."""
+        config_scheme = SvgConfigManager.get_config_scheme()
+        config_keys = {key for key, _ in config_scheme}
+
+        # These settings should be removed
+        removed_settings = ["dpi", "quality", "background_color", "temp_dir"]
+
+        for setting in removed_settings:
+            assert (
+                setting not in config_keys
+            ), f"Unused setting '{setting}' should be removed from config schema"

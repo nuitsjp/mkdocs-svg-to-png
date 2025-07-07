@@ -199,9 +199,15 @@ class TestPngOutputValidation:
         """Test that every generated PNG has a corresponding SVG input."""
         expected_pngs = list(fixtures_expected_dir.glob("*.png"))
 
-        # Remove the original basic PNGs from the count
+        # Remove the original basic PNGs and test PNGs from the count
         basic_pngs = ["output_basic.png", "output_sequence.png"]
-        generated_pngs = [png for png in expected_pngs if png.name not in basic_pngs]
+        test_pngs = [
+            "detailed-diagram.drawio.png",
+            "detailed-diagram-transparent.drawio.png",
+            "detailed-diagram-red.drawio.png",
+        ]
+        excluded_pngs = basic_pngs + test_pngs
+        generated_pngs = [png for png in expected_pngs if png.name not in excluded_pngs]
 
         for png_file in generated_pngs:
             # Find corresponding SVG file
