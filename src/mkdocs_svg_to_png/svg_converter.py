@@ -58,23 +58,7 @@ class SvgToPngConverter:
             ensure_directory(str(Path(output_path).parent))
 
             # Convert SVG to PNG using Playwright
-            try:
-                # Check if we're in an async context
-                asyncio.get_running_loop()
-                # If we are, run in a new thread with a new event loop
-                import concurrent.futures
-
-                with concurrent.futures.ThreadPoolExecutor() as executor:
-                    future = executor.submit(
-                        asyncio.run,
-                        self._convert_svg_with_playwright(svg_content, output_path),
-                    )
-                    success = future.result()
-            except RuntimeError:
-                # No event loop running, use asyncio.run
-                success = asyncio.run(
-                    self._convert_svg_with_playwright(svg_content, output_path)
-                )
+            success = self._run_playwright_conversion(svg_content, output_path)
 
             if success:
                 self.logger.info(f"Generated PNG image: {output_path}")
@@ -286,6 +270,66 @@ class SvgToPngConverter:
             pass
 
         return default
+
+    def _run_playwright_conversion(self, svg_content: str, output_path: str) -> bool:
+        """Run Playwright conversion handling asyncio event loop properly.
+
+        Args:
+            svg_content: String containing SVG markup
+            output_path: Path where PNG file should be saved
+
+        Returns:
+            True if conversion was successful, False otherwise
+        """
+        try:
+            # Check if we're in an existing event loop
+            try:
+                loop = asyncio.get_running_loop()
+                if loop and loop.is_running():
+                    # We're in an event loop, run in a new thread
+                    import threading
+
+                    result_container = {}
+                    exception_container = {}
+
+                    def run_in_new_loop() -> None:
+                        try:
+                            # Create a new event loop for this thread
+                            new_loop = asyncio.new_event_loop()
+                            asyncio.set_event_loop(new_loop)
+                            try:
+                                result = new_loop.run_until_complete(
+                                    self._convert_svg_with_playwright(
+                                        svg_content, output_path
+                                    )
+                                )
+                                result_container["success"] = result
+                            finally:
+                                new_loop.close()
+                        except Exception as e:
+                            exception_container["error"] = e
+
+                    thread = threading.Thread(target=run_in_new_loop)
+                    thread.start()
+                    thread.join()
+
+                    if "error" in exception_container:
+                        raise exception_container["error"]
+
+                    return result_container.get("success", False)
+                else:
+                    # Event loop exists but not running
+                    return asyncio.run(
+                        self._convert_svg_with_playwright(svg_content, output_path)
+                    )
+            except RuntimeError:
+                # No event loop running, safe to use asyncio.run
+                return asyncio.run(
+                    self._convert_svg_with_playwright(svg_content, output_path)
+                )
+        except Exception as e:
+            self.logger.error(f"Playwright conversion failed: {e}")
+            return False
 
     def _handle_conversion_error(
         self,

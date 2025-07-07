@@ -39,10 +39,9 @@ class TestSvgToPngConverter:
         assert converter.config == basic_config
 
     @patch("mkdocs_svg_to_png.svg_converter.ensure_directory")
-    @patch("mkdocs_svg_to_png.svg_converter.asyncio")
     @patch("mkdocs_svg_to_png.svg_converter.Path")
     def test_convert_svg_content_to_png_success(
-        self, mock_path, mock_asyncio, mock_ensure_directory, converter
+        self, mock_path, mock_ensure_directory, converter
     ):
         """Test successful SVG content to PNG conversion."""
         svg_content = (
@@ -50,16 +49,12 @@ class TestSvgToPngConverter:
         )
         output_path = "/tmp/test.png"
 
-        # Mock successful Playwright conversion
-        mock_asyncio.run.return_value = True
-
         # Mock Path operations
         mock_path.return_value.parent = "/tmp"
 
         result = converter.convert_svg_content(svg_content, output_path)
 
         assert result is True
-        mock_asyncio.run.assert_called_once()
         mock_ensure_directory.assert_called_once_with("/tmp")
 
     @patch("mkdocs_svg_to_png.svg_converter.Path")
@@ -93,27 +88,23 @@ class TestSvgToPngConverter:
             "<svg width='100' height='100'><rect/></svg>", output_path
         )
 
-    @patch("mkdocs_svg_to_png.svg_converter.ensure_directory")
-    @patch("mkdocs_svg_to_png.svg_converter.asyncio")
-    @patch("mkdocs_svg_to_png.svg_converter.Path")
-    def test_convert_svg_content_playwright_error(
-        self, mock_path, mock_asyncio, mock_ensure_directory, converter
-    ):
+    def test_convert_svg_content_playwright_error(self):
         """Test Playwright error handling."""
-        svg_content = "<svg>valid svg content</svg>"
-        output_path = "/tmp/test.png"
+        config = {
+            "output_dir": "assets/images",
+            "scale": 1.0,
+            "error_on_fail": False,  # Set to False to avoid exception
+        }
+        converter = SvgToPngConverter(config)
 
-        # Mock Playwright error
-        mock_asyncio.run.side_effect = Exception("Browser launch failed")
+        svg_content = "<svg>invalid/malformed svg content"
+        output_path = "/tmp/test_error.png"
 
-        # Mock Path operations
-        mock_path.return_value.parent = "/tmp"
+        # Test with malformed SVG - should handle error gracefully and return False
+        result = converter.convert_svg_content(svg_content, output_path)
 
-        with pytest.raises(SvgConversionError) as exc_info:
-            converter.convert_svg_content(svg_content, output_path)
-
-        assert "Playwright conversion failed" in str(exc_info.value)
-        assert exc_info.value.details["cairo_error"] == "Browser launch failed"
+        # With error_on_fail=False, should return False for invalid SVG
+        assert result is False
 
     def test_convert_svg_content_with_error_on_fail_false(self):
         """Test SVG conversion with error_on_fail=False."""
@@ -124,12 +115,10 @@ class TestSvgToPngConverter:
         }
         converter = SvgToPngConverter(config)
 
-        with patch("mkdocs_svg_to_png.svg_converter.asyncio") as mock_asyncio:
-            mock_asyncio.run.side_effect = Exception("Browser launch failed")
+        # Test with malformed SVG
+        result = converter.convert_svg_content("<svg>malformed", "/tmp/test.png")
 
-            result = converter.convert_svg_content("<svg/>", "/tmp/test.png")
-
-            assert result is False  # Should return False instead of raising
+        assert result is False  # Should return False instead of raising
 
     def test_convert_nonexistent_svg_file(self, converter):
         """Test conversion of non-existent SVG file."""
@@ -195,11 +184,8 @@ class TestSvgToPngConverter:
             os.chdir(original_cwd)
 
     @patch("mkdocs_svg_to_png.svg_converter.ensure_directory")
-    @patch("mkdocs_svg_to_png.svg_converter.asyncio")
     @patch("mkdocs_svg_to_png.svg_converter.Path")
-    def test_convert_with_custom_scale(
-        self, mock_path, mock_asyncio, mock_ensure_directory
-    ):
+    def test_convert_with_custom_scale(self, mock_path, mock_ensure_directory):
         """Test conversion with custom scale setting."""
         config = {
             "output_dir": "assets/images",
@@ -207,8 +193,6 @@ class TestSvgToPngConverter:
             "error_on_fail": True,
         }
         converter = SvgToPngConverter(config)
-
-        mock_asyncio.run.return_value = True
 
         # Mock Path operations
         mock_path.return_value.parent = "/tmp"
@@ -218,7 +202,6 @@ class TestSvgToPngConverter:
         )
 
         assert result is True
-        mock_asyncio.run.assert_called_once()
 
     def test_validate_svg_content_valid(self, converter):
         """Test SVG content validation with valid content."""

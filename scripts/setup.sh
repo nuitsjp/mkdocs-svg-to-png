@@ -122,6 +122,12 @@ main() {
     # Mermaid CLI local setup (project-specific)
     sudo npm install -g @mermaid-js/mermaid-cli
 
+    # Playwright setup for SVG to PNG conversion
+    print_step "Installing Playwright and browsers..."
+    uv run playwright install chromium
+    uv run playwright install-deps chromium
+    print_success "Playwright setup completed"
+
     # # Version control initialization
     # init_git                    # git: repository initialization if needed
 
