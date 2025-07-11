@@ -48,7 +48,6 @@ class TestMinimalConfig:
         # 期待される最小構成で動作に必要な項目
         essential_with_defaults = [
             "output_dir",  # 画像出力先
-            "cache_enabled",  # キャッシュ有効化
             "preserve_original",  # 元コード保持
             "error_on_fail",  # エラー時動作
             "log_level",  # ログレベル

@@ -50,8 +50,10 @@ class SvgToPngPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped-call]
             config_dict = dict(self.config)
             SvgConfigManager().validate(config_dict)
 
-            # verboseモードでない場合は、WARNINGレベルに設定
-            config_dict["log_level"] = "DEBUG" if self.is_verbose_mode else "WARNING"
+            # CLIフラグが指定されている場合は優先、そうでなければ設定値を使用
+            if self.is_verbose_mode:
+                config_dict["log_level"] = "DEBUG"
+            # else: config_dictのlog_levelをそのまま使用
 
             if not self._should_be_enabled(self.config):
                 self.logger.info("SVG to PNG plugin is disabled")

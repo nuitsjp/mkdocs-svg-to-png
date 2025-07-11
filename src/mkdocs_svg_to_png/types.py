@@ -15,7 +15,6 @@ ImageFormat = Literal["png", "svg"]
 class PluginConfigDict(TypedDict, total=False):
     output_dir: str
     image_format: ImageFormat
-    cache_enabled: bool
     preserve_original: bool
     error_on_fail: bool
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"]

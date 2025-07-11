@@ -23,10 +23,10 @@ class TestMinimalMkDocsConfig:
 
         # 必須設定項目がデフォルト値で設定されていることを確認
         assert plugin.config["output_dir"] == "assets/images"
-        assert plugin.config["cache_enabled"] is True
         assert plugin.config["preserve_original"] is False
         assert plugin.config["error_on_fail"] is False
         assert plugin.config["log_level"] == "INFO"
+        assert plugin.config["cleanup_generated_images"] is False
 
         # オプショナル設定項目はNoneになっていることを確認
         assert plugin.config["enabled_if_env"] is None

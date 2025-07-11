@@ -19,10 +19,6 @@ class SvgConfigManager:
                 config_options.Type(str, default="assets/images"),
             ),
             (
-                "cache_enabled",
-                config_options.Type(bool, default=True),
-            ),
-            (
                 "preserve_original",
                 config_options.Type(bool, default=False),
             ),
