@@ -143,8 +143,7 @@ class SvgProcessor:
                 error_msg,
                 file_path=str(image_path),
                 operation="image_generation",
-                suggestion="Check file permissions and ensure output "
-                "directory exists",
+                suggestion="Check file permissions and ensure output directory exists",
             ) from error
         return False
 
