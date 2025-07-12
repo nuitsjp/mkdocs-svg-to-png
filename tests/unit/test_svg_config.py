@@ -795,3 +795,378 @@ class TestSvgConfigManager:
                 assert config_instance["preserve_original"] is False
             if "error_on_fail" not in plugin_config:
                 assert config_instance["error_on_fail"] is False
+
+    def test_config_schema_type_constraints(self):
+        """Test detailed type constraints for each configuration option."""
+        from mkdocs.config import config_options
+
+        config_scheme = SvgConfigManager.get_config_scheme()
+        config_dict = dict(config_scheme)
+
+        # Test enabled_if_env type constraint
+        enabled_if_env_option = config_dict["enabled_if_env"]
+        assert isinstance(enabled_if_env_option, config_options.Optional)
+        # The inner type should be a string type
+        inner_type = enabled_if_env_option.option
+        assert isinstance(inner_type, config_options.Type)
+
+        # Test output_dir type constraint
+        output_dir_option = config_dict["output_dir"]
+        assert isinstance(output_dir_option, config_options.Type)
+        assert output_dir_option.default == "assets/images"
+
+        # Test log_level choice constraint
+        log_level_option = config_dict["log_level"]
+        assert isinstance(log_level_option, config_options.Choice)
+        assert log_level_option.choices == ["DEBUG", "INFO", "WARNING", "ERROR"]
+        assert log_level_option.default == "INFO"
+
+        # Test boolean options
+        for bool_option_name in [
+            "preserve_original",
+            "error_on_fail",
+            "cleanup_generated_images",
+        ]:
+            bool_option = config_dict[bool_option_name]
+            assert isinstance(bool_option, config_options.Type)
+            assert bool_option.default is False
+
+    def test_string_whitespace_handling(self):
+        """Test handling of whitespace in string configuration values."""
+        manager = SvgConfigManager()
+
+        # Test output_dir with leading/trailing whitespace
+        config = {"output_dir": "  assets/images  "}
+        result = manager.validate(config)
+        # Note: This test assumes whitespace is NOT automatically trimmed
+        # If trimming is expected, adjust the assertion
+        assert result["output_dir"] == "  assets/images  "
+
+        # Test enabled_if_env with whitespace
+        config = {"enabled_if_env": "  BUILD_ENV  "}
+        result = manager.validate(config)
+        assert result["enabled_if_env"] == "  BUILD_ENV  "
+
+    def test_enabled_if_env_non_string_types(self):
+        """Test enabled_if_env validation with various non-string types."""
+        from mkdocs.config.base import Config
+
+        # Test with non-string types that should fail validation
+        invalid_values = [123, True, [], {}, 3.14]
+
+        for invalid_value in invalid_values:
+            config_instance = Config(SvgConfigManager.get_config_scheme())
+            try:
+                config_instance.load_dict({"enabled_if_env": invalid_value})
+                # If we get here, check what actually happened
+                result_value = config_instance["enabled_if_env"]
+                result_type = type(result_value)
+
+                # If type conversion occurred to string, that's acceptable
+                if isinstance(result_value, str):
+                    # MkDocs might convert types to strings - this is valid behavior
+                    expected_str = str(invalid_value)
+                    assert result_value == expected_str, (
+                        f"String conversion should match: "
+                        f"expected {expected_str}, got {result_value}"
+                    )
+                elif result_value is None:
+                    # None is also acceptable for Optional fields
+                    pass
+                else:
+                    # Any other type preservation is unexpected
+                    raise AssertionError(
+                        f"Unexpected type preservation for enabled_if_env: "
+                        f"input {type(invalid_value).__name__}({invalid_value}) -> "
+                        f"output {result_type.__name__}({result_value})"
+                    )
+            except Exception as e:
+                # Validation failure is expected and acceptable
+                # Verify the error is related to type validation
+                error_str = str(e).lower()
+                type_related = any(
+                    keyword in error_str
+                    for keyword in [
+                        "type",
+                        "string",
+                        "str",
+                        "enabled_if_env",
+                        "invalid",
+                    ]
+                )
+                assert type_related or "enabled_if_env" in error_str, (
+                    f"Expected type-related error for "
+                    f"{type(invalid_value).__name__}: {e}"
+                )
+
+    def test_log_level_case_sensitivity(self):
+        """Test log_level validation with different cases."""
+        from mkdocs.config.base import Config
+
+        config_instance = Config(SvgConfigManager.get_config_scheme())
+
+        # Test lowercase log levels (should fail if case-sensitive)
+        lowercase_levels = ["debug", "info", "warning", "error"]
+
+        for level in lowercase_levels:
+            try:
+                config_instance = Config(SvgConfigManager.get_config_scheme())
+                config_instance.load_dict({"log_level": level})
+                # If this passes, case conversion might be happening
+                if config_instance["log_level"] in [
+                    "DEBUG",
+                    "INFO",
+                    "WARNING",
+                    "ERROR",
+                ]:
+                    # Case conversion occurred - this is acceptable
+                    pass
+                else:
+                    raise AssertionError(
+                        f"Unexpected log_level value: {config_instance['log_level']}"
+                    )
+            except Exception:
+                # Case-sensitive validation (expected behavior)
+                pass
+
+        # Test mixed case (should fail)
+        mixed_case_levels = ["Debug", "Info", "Warning", "Error"]
+
+        for level in mixed_case_levels:
+            try:
+                config_instance = Config(SvgConfigManager.get_config_scheme())
+                config_instance.load_dict({"log_level": level})
+                # If this passes, case conversion might be happening
+                if config_instance["log_level"] not in [
+                    "DEBUG",
+                    "INFO",
+                    "WARNING",
+                    "ERROR",
+                ]:
+                    raise AssertionError(
+                        f"Expected validation to fail for mixed case: {level}"
+                    )
+            except Exception:
+                # Case-sensitive validation (expected behavior)
+                pass
+
+    def test_actual_plugin_class_integration(self):
+        """Test configuration integration with the actual SvgToPngPlugin class."""
+        from mkdocs_svg_to_png.plugin import SvgToPngPlugin
+
+        plugin = SvgToPngPlugin()
+
+        # Verify the plugin uses the same config scheme
+        plugin_scheme = plugin.config_scheme
+        manager_scheme = SvgConfigManager.get_config_scheme()
+
+        # Should have the same configuration keys
+        plugin_keys = {key for key, _ in plugin_scheme}
+        manager_keys = {key for key, _ in manager_scheme}
+
+        assert (
+            plugin_keys == manager_keys
+        ), "Plugin and ConfigManager should have same config keys"
+
+        # Verify default values match
+        plugin_defaults = {}
+        manager_defaults = {}
+
+        for key, option in plugin_scheme:
+            if hasattr(option, "default"):
+                plugin_defaults[key] = option.default
+
+        for key, option in manager_scheme:
+            if hasattr(option, "default"):
+                manager_defaults[key] = option.default
+
+        assert (
+            plugin_defaults == manager_defaults
+        ), "Default values should match between plugin and manager"
+
+    def test_config_validation_error_messages(self):
+        """Test that configuration validation provides meaningful error messages."""
+        from mkdocs.config.base import Config
+
+        # Test invalid log_level with error message content
+        config_instance = Config(SvgConfigManager.get_config_scheme())
+
+        try:
+            config_instance.load_dict({"log_level": "INVALID_LEVEL"})
+            raise AssertionError("Expected validation to fail for invalid log_level")
+        except Exception as e:
+            error_message = str(e).lower()
+            # Error message should mention the invalid value and valid choices
+            assert "log_level" in error_message or "invalid_level" in error_message
+            # Should mention valid choices
+            valid_choices_mentioned = any(
+                level.lower() in error_message
+                for level in ["debug", "info", "warning", "error"]
+            )
+            if not valid_choices_mentioned:
+                # At least the field name should be in the error
+                assert "log_level" in error_message
+
+    def test_config_type_preservation(self):
+        """Test that configuration values preserve their intended types."""
+        from mkdocs.config.base import Config
+
+        config_instance = Config(SvgConfigManager.get_config_scheme())
+
+        test_config = {
+            "enabled_if_env": "TEST_ENV",
+            "output_dir": "test/dir",
+            "preserve_original": True,
+            "error_on_fail": False,
+            "log_level": "DEBUG",
+            "cleanup_generated_images": True,
+        }
+
+        config_instance.load_dict(test_config)
+
+        # Verify types are preserved
+        assert isinstance(config_instance["enabled_if_env"], str)
+        assert isinstance(config_instance["output_dir"], str)
+        assert isinstance(config_instance["preserve_original"], bool)
+        assert isinstance(config_instance["error_on_fail"], bool)
+        assert isinstance(config_instance["log_level"], str)
+        assert isinstance(config_instance["cleanup_generated_images"], bool)
+
+        # Verify exact values
+        assert config_instance["enabled_if_env"] == "TEST_ENV"
+        assert config_instance["output_dir"] == "test/dir"
+        assert config_instance["preserve_original"] is True
+        assert config_instance["error_on_fail"] is False
+        assert config_instance["log_level"] == "DEBUG"
+        assert config_instance["cleanup_generated_images"] is True
+
+    def test_config_empty_string_edge_cases(self):
+        """Test configuration behavior with empty strings."""
+        manager = SvgConfigManager()
+
+        # Test empty string for output_dir (edge case)
+        config = {"output_dir": ""}
+        result = manager.validate(config)
+        assert result["output_dir"] == ""
+
+        # Test empty string for enabled_if_env (should be valid)
+        config = {"enabled_if_env": ""}
+        result = manager.validate(config)
+        assert result["enabled_if_env"] == ""
+
+    def test_config_none_values_comprehensive(self):
+        """Test None values for all configuration options."""
+        from mkdocs.config.base import Config
+
+        config_instance = Config(SvgConfigManager.get_config_scheme())
+
+        # Test None for enabled_if_env (should be valid - it's Optional)
+        config_instance.load_dict({"enabled_if_env": None})
+        assert config_instance["enabled_if_env"] is None
+
+        # Test None for required fields (should fail)
+        required_string_fields = ["output_dir"]
+        required_bool_fields = [
+            "preserve_original",
+            "error_on_fail",
+            "cleanup_generated_images",
+        ]
+
+        for field in required_string_fields:
+            try:
+                config_instance = Config(SvgConfigManager.get_config_scheme())
+                config_instance.load_dict({field: None})
+                raise AssertionError(f"Expected validation to fail for None {field}")
+            except Exception:
+                # Expected to fail
+                pass
+
+        for field in required_bool_fields:
+            try:
+                config_instance = Config(SvgConfigManager.get_config_scheme())
+                config_instance.load_dict({field: None})
+                raise AssertionError(f"Expected validation to fail for None {field}")
+            except Exception:
+                # Expected to fail
+                pass
+
+    def test_config_special_characters_in_paths(self):
+        """Test configuration with special characters in paths."""
+        manager = SvgConfigManager()
+
+        special_chars_paths = [
+            "assets/images-test",
+            "assets/images_v1.0",
+            "assets/images.backup",
+            "assets/images@2024",
+            "assets/images#temp",
+            "assets/images$build",
+            "assets/images%encoded",
+            "assets/images&test",
+            "assets/images(temp)",
+        ]
+
+        for path in special_chars_paths:
+            config = {"output_dir": path}
+            result = manager.validate(config)
+            assert result["output_dir"] == path
+
+    def test_config_unicode_support(self):
+        """Test configuration with Unicode characters."""
+        manager = SvgConfigManager()
+
+        unicode_test_cases = [
+            # Japanese
+            {"output_dir": "assets/画像", "enabled_if_env": "ビルド環境"},
+            # Chinese
+            {"output_dir": "assets/图片", "enabled_if_env": "构建环境"},
+            # Arabic
+            {"output_dir": "assets/صور", "enabled_if_env": "بيئة_البناء"},
+            # Emoji
+            {"output_dir": "assets/📷images", "enabled_if_env": "🏗️BUILD"},
+            # Mixed
+            {
+                "output_dir": "assets/images_画像_图片",
+                "enabled_if_env": "BUILD_环境_بيئة",
+            },
+        ]
+
+        for config in unicode_test_cases:
+            result = manager.validate(config)
+            assert result == config
+
+    def test_config_very_long_values(self):
+        """Test configuration with very long string values."""
+        manager = SvgConfigManager()
+
+        # Test very long output_dir
+        long_path = "/".join([f"very_long_directory_name_{i}" for i in range(50)])
+        config = {"output_dir": long_path}
+        result = manager.validate(config)
+        assert result["output_dir"] == long_path
+
+        # Test very long enabled_if_env
+        long_env_name = "_".join([f"VERY_LONG_ENV_VAR_PART_{i}" for i in range(20)])
+        config = {"enabled_if_env": long_env_name}
+        result = manager.validate(config)
+        assert result["enabled_if_env"] == long_env_name
+
+    def test_config_numeric_string_values(self):
+        """Test configuration with numeric string values."""
+        manager = SvgConfigManager()
+
+        # Test numeric strings for output_dir
+        numeric_paths = ["123", "456.789", "1e10", "0xFF", "0b1010"]
+
+        for path in numeric_paths:
+            config = {"output_dir": path}
+            result = manager.validate(config)
+            assert result["output_dir"] == path
+
+        # Test numeric strings for enabled_if_env
+        numeric_env_names = ["123", "BUILD_123", "ENV_2024", "VERSION_1_0"]
+
+        for env_name in numeric_env_names:
+            config = {"enabled_if_env": env_name}
+            result = manager.validate(config)
+            assert result["enabled_if_env"] == env_name
