@@ -27,7 +27,7 @@ markdown_extensions:
 
 plugins:
   - search
-  - mermaid-to-image:
+  - mermaid-to-svg:
       # 環境変数ENABLE_PDF_EXPORTが設定されている場合のみプラグインを有効化
       enabled_if_env: ENABLE_PDF_EXPORT
   - svg-to-png:

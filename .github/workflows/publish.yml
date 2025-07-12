@@ -131,9 +131,9 @@ jobs:
           echo "- **Release Type**: ${{ needs.determine-release-type.outputs.release-type }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Version**: ${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
           if [[ "${{ needs.determine-release-type.outputs.is-production }}" == "true" ]]; then
-            echo "- **PyPI**: https://pypi.org/project/mkdocs-mermaid-to-image/${{ steps.version.outputs.version }}/" >> $GITHUB_STEP_SUMMARY
+            echo "- **PyPI**: https://pypi.org/project/mkdocs-mermaid-to-svg/${{ steps.version.outputs.version }}/" >> $GITHUB_STEP_SUMMARY
             echo "- **GitHub Release**: ${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
           else
-            echo "- **TestPyPI**: https://test.pypi.org/project/mkdocs-mermaid-to-image/${{ steps.version.outputs.version }}/" >> $GITHUB_STEP_SUMMARY
-            echo "- **Installation**: \`pip install --index-url https://test.pypi.org/simple/ mkdocs-mermaid-to-image==${{ steps.version.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
+            echo "- **TestPyPI**: https://test.pypi.org/project/mkdocs-mermaid-to-svg/${{ steps.version.outputs.version }}/" >> $GITHUB_STEP_SUMMARY
+            echo "- **Installation**: \`pip install --index-url https://test.pypi.org/simple/ mkdocs-mermaid-to-svg==${{ steps.version.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
           fi

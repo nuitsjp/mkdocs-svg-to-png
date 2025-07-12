@@ -20,8 +20,8 @@
 
 ```bash
 # 新しいリポジトリをクローン
-git clone https://github.com/yourusername/mkdocs-mermaid-to-image.git
-cd mkdocs-mermaid-to-image
+git clone https://github.com/yourusername/mkdocs-mermaid-to-svg.git
+cd mkdocs-mermaid-to-svg
 
 # セットアップ
 make setup
