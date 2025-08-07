@@ -1,6 +1,13 @@
 INSTRUCTION.md
 _version.py
 
+# Serena-specific
+/*.yml
+!*.template.yml
+/agent-ui
+
+.serena/
+
 # Python
 __pycache__/
 .benchmarks/
