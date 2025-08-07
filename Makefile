@@ -147,8 +147,15 @@ serve:
 build:
 	uv run mkdocs build
 
+# PDF付きビルド（bash/PowerShell/cmd 両対応）
+ifeq ($(OS),Windows_NT)
+# Windows (cmd / PowerShell 経由) では行頭代入が効かないため set && を使用
+build-pdf:
+	set "ENABLE_PDF_EXPORT=1" && uv run mkdocs build
+else
 build-pdf:
 	ENABLE_PDF_EXPORT=1 uv run mkdocs build
+endif
 
 # Mermaid CLIコマンド
 mmdc-version:
