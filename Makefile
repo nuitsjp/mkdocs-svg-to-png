@@ -1,5 +1,12 @@
 .PHONY: help test test-cov test-unit test-property test-integration format lint typecheck security audit check check-all check-security benchmark profile setup pr issue clean install-dev serve build build-pdf mmdc-version mmdc-version-npx
 
+# OS 標準のテンポラリディレクトリをデフォルト使用。
+# 必要に応じて一時的に別ベースパスを使いたい場合:
+#   make test BASETEMP="/custom/tmp"
+ifdef BASETEMP
+PYTEST_ADDOPTS ?= --basetemp=$(BASETEMP)
+endif
+
 # デフォルトターゲット
 help:
 	@echo "Usage: make [target]"
@@ -30,6 +37,7 @@ help:
 	@echo "  pr           - PR作成 (TITLE=\"タイトル\" BODY=\"本文\" [LABEL=\"ラベル\"])"
 	@echo "  issue        - イシュー作成 (TITLE=\"タイトル\" BODY=\"本文\" [LABEL=\"ラベル\"])"
 	@echo "  clean        - キャッシュファイルの削除"
+	@echo "  clean-pytest-temp - pytest一時ディレクトリ(pytest-of-<user>)のクリーン"
 
 # セットアップ
 setup:
@@ -43,19 +51,19 @@ sync:
 
 # テスト関連
 test:
-	uv run pytest
+	uv run pytest $(PYTEST_ADDOPTS)
 
 test-cov:
-	uv run pytest --cov=src --cov-report=html --cov-report=term
+	uv run pytest $(PYTEST_ADDOPTS) --cov=src --cov-report=html --cov-report=term
 
 test-unit:
-	uv run pytest tests/unit/ -v
+	uv run pytest $(PYTEST_ADDOPTS) tests/unit/ -v
 
 test-property:
-	uv run pytest tests/property/ -v
+	uv run pytest $(PYTEST_ADDOPTS) tests/property/ -v
 
 test-integration:
-	uv run pytest tests/integration/ -v
+	uv run pytest $(PYTEST_ADDOPTS) tests/integration/ -v
 
 # コード品質チェック
 format:
@@ -158,3 +166,8 @@ clean:
 	find . -type d -name ".ruff_cache" -exec rm -rf {} +
 	find . -type d -name "htmlcov" -exec rm -rf {} +
 	find . -type f -name ".coverage" -delete
+
+# OS非依存で pytest が作成するユーザー単位の一時ディレクトリを削除
+# 権限問題がある場合: Windows では所有権/ACLを変更し再試行
+clean-pytest-temp:
+	uv run python scripts/clean_pytest_temp.py

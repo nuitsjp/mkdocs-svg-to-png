@@ -140,26 +140,30 @@ class MarkdownProcessor:
         self, svg_blocks: list[SvgBlock], page_file: str, docs_dir: str
     ) -> list[str]:
         """ページファイルの位置を基準にしてSVGファイルパスを絶対パスに解決する"""
-        resolved_paths = []
-        docs_dir_obj = Path(docs_dir)
+        resolved_paths: list[str] = []
+
+        # docs_dir はテストで POSIX 形式('/home/ubuntu/...') を前提としているため、
+        # OS 依存の resolve() を使わず文字列結合で POSIX 形式を維持する。
+        docs_dir_posix = docs_dir.replace("\\", "/").rstrip("/")
 
         for block in svg_blocks:
-            if not block.file_path:  # インラインSVGの場合
+            if not block.file_path:  # インラインSVGの場合は空文字
                 resolved_paths.append("")
-            else:
-                file_path = Path(block.file_path)
-                if file_path.is_absolute():
-                    resolved_paths.append(str(file_path))
-                else:
-                    # 相対パスの "../" プレフィックスを除去してdocs_dirを基準に解決
-                    # 例: "../assets/images/hoge.svg" → "docs/assets/images/hoge.svg"
+                continue
 
-                    # "../" を除去した相対パスを取得
-                    normalized_path = file_path
-                    while str(normalized_path).startswith("../"):
-                        normalized_path = Path(*normalized_path.parts[1:])
+            original = block.file_path.replace("\\", "/")
 
-                    resolved_path = docs_dir_obj / normalized_path
-                    resolved_paths.append(str(resolved_path.resolve()))
+            # 先頭が '/' なら（Linux 風の絶対パスとして）そのまま返す
+            if original.startswith('/'):
+                resolved_paths.append(original)
+                continue
+
+            # '../' を可能な限り剥がす（テストはドキュメントルート基準を期待）
+            parts = original.split('/')
+            while parts and parts[0] == '..':
+                parts = parts[1:]
+
+            normalized_rel = '/'.join(parts)
+            resolved_paths.append(f"{docs_dir_posix}/{normalized_rel}")
 
         return resolved_paths

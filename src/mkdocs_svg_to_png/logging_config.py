@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import os
 import sys
+import platform
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -85,14 +86,36 @@ def setup_plugin_logging(
     console_handler.setFormatter(StructuredFormatter(include_caller=include_caller))
     logger.addHandler(console_handler)
 
+    class EphemeralFileHandler(logging.FileHandler):
+        """Emit毎にファイルを開閉して Windows の一時ディレクトリロック問題を軽減"""
+
+        def emit(self, record: logging.LogRecord) -> None:  # type: ignore[override]
+            if self.stream is None:
+                self.stream = self._open()
+            try:
+                super().emit(record)
+            finally:
+                if self.stream:
+                    try:
+                        self.stream.close()
+                    except Exception:
+                        pass
+                    self.stream = None
+
     if log_file:
         log_path = Path(log_file)
         log_path.parent.mkdir(parents=True, exist_ok=True)
 
-        file_handler = logging.FileHandler(log_path, encoding="utf-8")
+        use_ephemeral = platform.system().lower().startswith("win")
+        handler_cls: type[logging.FileHandler] = (
+            EphemeralFileHandler if use_ephemeral else logging.FileHandler
+        )
+
+        file_handler = handler_cls(log_path, encoding="utf-8")
         file_handler.setLevel(getattr(logging, level.upper()))
         file_handler.setFormatter(StructuredFormatter(include_caller=include_caller))
         logger.addHandler(file_handler)
+        logger.log(getattr(logging, level.upper()), "Log file initialized")
 
     logger.propagate = False
 
@@ -169,3 +192,17 @@ def get_logger(name: str) -> logging.Logger:
         setup_plugin_logging()
 
     return logging.getLogger(name)
+
+
+def shutdown_logging() -> None:
+    """Flush & close all handlers (mainly for tests on Windows)."""
+    root_logger = logging.getLogger("mkdocs_svg_to_png")
+    for h in list(root_logger.handlers):  # copy list
+        try:
+            h.flush()
+        except Exception:
+            pass
+        try:
+            h.close()
+        except Exception:
+            pass

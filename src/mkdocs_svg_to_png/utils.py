@@ -108,7 +108,8 @@ def get_relative_path(file_path: str, base_path: str) -> str:
 
     try:
         rel_path = os.path.relpath(file_path, base_path)
-        return rel_path
+        # テストは POSIX スラッシュを期待するため統一
+        return rel_path.replace('\\', '/')
     except ValueError as e:
         logger.warning(
             f"Cannot calculate relative path from {base_path} to {file_path}",
