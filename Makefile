@@ -1,4 +1,4 @@
-.PHONY: help test test-cov test-unit test-property test-integration format lint typecheck security audit check check-all check-security benchmark profile setup pr issue clean install-dev serve build build-pdf mmdc-version mmdc-version-npx
+.PHONY: help test test-cov test-unit test-property test-integration format lint typecheck security audit check check-all check-security benchmark profile setup pr issue clean install-dev serve serve-pdf build build-pdf mmdc-version mmdc-version-npx
 
 # OS 標準のテンポラリディレクトリをデフォルト使用。
 # 必要に応じて一時的に別ベースパスを使いたい場合:
@@ -32,6 +32,7 @@ help:
 	@echo "  serve        - MkDocs開発サーバー起動"
 	@echo "  build        - MkDocsドキュメントビルド"
 	@echo "  build-pdf    - PDF生成付きMkDocsビルド"
+	@echo "  serve-pdf    - PDF生成有効化してMkDocs開発サーバー起動"
 	@echo "  mmdc-version - Mermaid CLIバージョン確認"
 	@echo "  mmdc-version-npx - npx経由でMermaid CLIバージョン確認"
 	@echo "  pr           - PR作成 (TITLE=\"タイトル\" BODY=\"本文\" [LABEL=\"ラベル\"])"
@@ -147,14 +148,20 @@ serve:
 build:
 	uv run mkdocs build
 
-# PDF付きビルド（bash/PowerShell/cmd 両対応）
+# PDF付きビルド / サーブ（bash/PowerShell/cmd 両対応）
 ifeq ($(OS),Windows_NT)
 # Windows (cmd / PowerShell 経由) では行頭代入が効かないため set && を使用
 build-pdf:
 	set "ENABLE_PDF_EXPORT=1" && uv run mkdocs build
+
+serve-pdf:
+	set "ENABLE_PDF_EXPORT=1" && uv run mkdocs serve
 else
 build-pdf:
 	ENABLE_PDF_EXPORT=1 uv run mkdocs build
+
+serve-pdf:
+	ENABLE_PDF_EXPORT=1 uv run mkdocs serve
 endif
 
 # Mermaid CLIコマンド
