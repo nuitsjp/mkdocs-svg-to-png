@@ -6,8 +6,6 @@ SvgProcessorクラスのテスト
 from pathlib import Path
 from unittest.mock import Mock
 
-import pytest
-
 from mkdocs_svg_to_png.processor import SvgProcessor
 from mkdocs_svg_to_png.svg_block import SvgBlock
 
@@ -15,30 +13,17 @@ from mkdocs_svg_to_png.svg_block import SvgBlock
 class TestSvgProcessor:
     """SvgProcessorクラスのテストクラス"""
 
-    @pytest.fixture
-    def basic_config(self):
-        """テスト用の基本設定を返すfixture"""
-        return {
-            "output_dir": "assets/images",
-            "preserve_original": False,
-            "error_on_fail": False,
-            "log_level": "INFO",
-            "output_path": "assets/images",
-            "dpi": 150,
-            "quality": 90,
-        }
-
-    def test_processor_initialization(self, basic_config):
+    def test_processor_initialization(self, svg_config):
         """SvgProcessorの初期化が正しく行われるかテスト"""
-        processor = SvgProcessor(basic_config)
-        assert processor.config == basic_config
+        processor = SvgProcessor(svg_config)
+        assert processor.config == svg_config
         assert processor.logger is not None
         assert processor.markdown_processor is not None
         assert processor.svg_converter is not None
 
-    def test_process_page_with_blocks(self, basic_config):
+    def test_process_page_with_blocks(self, svg_config):
         """SVGブロックがある場合のページ処理をテスト"""
-        processor = SvgProcessor(basic_config)
+        processor = SvgProcessor(svg_config)
 
         # SvgBlockのモックを作成
         mock_block = Mock(spec=SvgBlock)
@@ -69,9 +54,9 @@ class TestSvgProcessor:
         mock_block.generate_png.assert_called_once()
         mock_block.get_filename.assert_called_once_with("test.md", 0, "png")
 
-    def test_process_page_no_blocks(self, basic_config):
+    def test_process_page_no_blocks(self, svg_config):
         """SVGブロックがない場合は元の内容が返るかテスト"""
-        processor = SvgProcessor(basic_config)
+        processor = SvgProcessor(svg_config)
 
         # ブロック抽出が空リストを返すようにモック
         processor.markdown_processor.extract_svg_blocks = Mock(return_value=[])
@@ -89,9 +74,9 @@ print("Hello")
         assert result_content == markdown
         assert len(result_paths) == 0
 
-    def test_process_page_with_conversion_failure(self, basic_config):
+    def test_process_page_with_conversion_failure(self, svg_config):
         """画像変換が失敗した場合の挙動をテスト"""
-        processor = SvgProcessor(basic_config)
+        processor = SvgProcessor(svg_config)
 
         # 画像変換が失敗するブロックをモック
         mock_block = Mock(spec=SvgBlock)
@@ -113,9 +98,9 @@ print("Hello")
         assert result_content == markdown
         assert len(result_paths) == 0
 
-    def test_process_page_with_svg_file_reference_failure(self, basic_config):
+    def test_process_page_with_svg_file_reference_failure(self, svg_config):
         """SVGファイル参照の変換が失敗した場合の挙動をテスト（Mermaidのような相対パス）"""
-        processor = SvgProcessor(basic_config)
+        processor = SvgProcessor(svg_config)
 
         # SVGファイル参照の変換が失敗するブロックをモック
         mock_block = Mock(spec=SvgBlock)

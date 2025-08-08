@@ -154,16 +154,16 @@ class MarkdownProcessor:
             original = block.file_path.replace("\\", "/")
 
             # 先頭が '/' なら（Linux 風の絶対パスとして）そのまま返す
-            if original.startswith('/'):
+            if original.startswith("/"):
                 resolved_paths.append(original)
                 continue
 
             # '../' を可能な限り剥がす（テストはドキュメントルート基準を期待）
-            parts = original.split('/')
-            while parts and parts[0] == '..':
+            parts = original.split("/")
+            while parts and parts[0] == "..":
                 parts = parts[1:]
 
-            normalized_rel = '/'.join(parts)
+            normalized_rel = "/".join(parts)
             resolved_paths.append(f"{docs_dir_posix}/{normalized_rel}")
 
         return resolved_paths

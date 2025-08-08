@@ -1,28 +1,6 @@
 {
   "permissions": {
     "allow": [
-      "Bash(similarity-py:*)",
-      "Bash(python:*)",
-      "Bash(python3:*)",
-      "Bash(make:*)",
-      "Bash(echo $PATH)",
-      "Bash(sudo apt:*)",
-      "Bash(snap list:*)",
-      "Bash(ls:*)",
-      "Bash(source ~/.bashrc)",
-      "Bash(npm:*)",
-      "Bash(export:*)",
-      "Bash(ENABLE_PDF_EXPORT=1 uv run mkdocs build)",
-      "Bash(mmdc:*)",
-      "Bash(node:*)",
-      "Bash(npx mmdc:*)",
-      "Bash(rm:*)",
-      "Bash(grep:*)",
-      "Bash(mkdir:*)",
-      "Bash(mv:*)",
-      "Bash(find:*)",
-      "Bash(rg:*)",
-      "Bash(uv:*)",
       "mcp__serena__check_onboarding_performed",
       "mcp__serena__onboarding",
       "mcp__serena__get_symbols_overview",
@@ -42,7 +20,18 @@
       "mcp__serena__delete_memory",
       "mcp__serena__restart_language_server",
       "mcp__serena__think_about_collected_information",
-      "mcp__serena__think_about_whether_you_are_done"
+      "mcp__serena__think_about_whether_you_are_done",
+      "mcp__serena__search_for_pattern",
+      "mcp__serena__find_file",
+      "Bash(rd:*)",
+      "Bash(powershell:*)",
+      "Bash(del:*)",
+      "mcp__serena__replace_symbol_body",
+      "mcp__serena__replace_regex",
+      "Bash(set PYTHONPATH=%PYTHONPATH%)",
+      "Bash(%cd%src)",
+      "Bash(ruff check:*)",
+      "Bash(mypy:*)"
     ],
     "deny": []
   }

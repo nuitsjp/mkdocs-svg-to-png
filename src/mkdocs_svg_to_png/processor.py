@@ -81,19 +81,22 @@ class SvgProcessor:
                 if success:
                     image_paths.append(str(image_path))
                     successful_blocks.append(block)
-                elif not self.config["error_on_fail"]:
-                    self._log_generation_failure(page_file, i, image_path)
+                elif self.config["error_on_fail"]:
+                    raise SvgImageError(
+                        f"PNG generation failed for block {i} in {page_file}",
+                        image_path=str(image_path),
+                        suggestion="Check SVG content and conversion setup",
+                    )
                 else:
-                    self._raise_generation_error(page_file, i, image_path)
+                    self.logger.warning(
+                        f"PNG generation failed for block {i} in {page_file}, "
+                        f"keeping original SVG"
+                    )
 
-            except SvgConversionError:
-                raise
-            except (FileNotFoundError, OSError, PermissionError) as e:
-                if not self._handle_file_error(e, page_file, i, image_path):
-                    continue
             except Exception as e:
-                if not self._handle_unexpected_error(e, page_file, i):
-                    continue
+                if self.config["error_on_fail"]:
+                    raise
+                self.logger.error(f"Error processing block {i} in {page_file}: {e}")
 
         return image_paths, successful_blocks
 

@@ -17,26 +17,14 @@ class TestSvgToPngConverter:
     """Test SvgToPngConverter class."""
 
     @pytest.fixture
-    def basic_config(self):
-        """Basic configuration for testing."""
-        return {
-            "output_dir": "assets/images",
-            "scale": 1.0,
-            "device_scale_factor": 1.0,
-            "default_width": 800,
-            "default_height": 600,
-            "error_on_fail": True,
-        }
-
-    @pytest.fixture
-    def converter(self, basic_config):
+    def converter(self, svg_config):
         """Create SvgToPngConverter instance."""
-        return SvgToPngConverter(basic_config)
+        return SvgToPngConverter(svg_config)
 
-    def test_svg_converter_initialization(self, basic_config):
+    def test_svg_converter_initialization(self, svg_config):
         """Test SvgToPngConverter initialization."""
-        converter = SvgToPngConverter(basic_config)
-        assert converter.config == basic_config
+        converter = SvgToPngConverter(svg_config)
+        assert converter.config == svg_config
 
     @patch("mkdocs_svg_to_png.svg_converter.ensure_directory")
     @patch("mkdocs_svg_to_png.svg_converter.Path")
@@ -120,8 +108,19 @@ class TestSvgToPngConverter:
 
         assert result is False  # Should return False instead of raising
 
-    def test_convert_nonexistent_svg_file(self, converter):
+    def test_convert_nonexistent_svg_file(self):
         """Test conversion of non-existent SVG file."""
+        # Create config with error_on_fail=True to ensure exception is raised
+        config = {
+            "output_dir": "assets/images",
+            "scale": 1.0,
+            "device_scale_factor": 1.0,
+            "default_width": 800,
+            "default_height": 600,
+            "error_on_fail": True,  # Enable exceptions
+        }
+        converter = SvgToPngConverter(config)
+
         svg_path = "/nonexistent/file.svg"
         output_path = "/tmp/test.png"
 

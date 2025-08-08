@@ -37,21 +37,6 @@ def mock_failed_svg_block():
 
 
 @pytest.fixture
-def basic_config():
-    """基本的な設定辞書を返すフィクスチャ"""
-    return {
-        "enabled": True,
-        "output_dir": "assets/images",
-        "image_format": "png",
-        "error_on_fail": False,
-        "log_level": "INFO",
-        "output_path": "assets/images",
-        "dpi": 150,
-        "quality": 90,
-    }
-
-
-@pytest.fixture
 def mock_config():
     """MkDocsの設定オブジェクトのモック"""
     config = Mock()
@@ -148,64 +133,47 @@ def mock_temp_file():
 
 
 @pytest.fixture
-def mock_processor_with_command(basic_config):
-    """コマンド利用可能なプロセッサのモックフィクスチャ"""
-    from mkdocs_svg_to_png.processor import MermaidProcessor
-
-    with patch("mkdocs_svg_to_png.image_generator.is_command_available") as mock_cmd:
-        mock_cmd.return_value = True
-        processor = MermaidProcessor(basic_config)
-        yield processor, mock_cmd
-
-
-@pytest.fixture
-def mock_processor_without_command(basic_config):
-    """コマンド利用不可なプロセッサのモックフィクスチャ"""
-    from mkdocs_svg_to_png.processor import MermaidProcessor
-
-    with patch("mkdocs_svg_to_png.image_generator.is_command_available") as mock_cmd:
-        mock_cmd.return_value = False
-        try:
-            processor = MermaidProcessor(basic_config)
-        except Exception:
-            processor = None
-        yield processor, mock_cmd
+def svg_config():
+    """SVG処理用の基本設定"""
+    return {
+        "output_dir": "assets/images",
+        "scale": 1.0,
+        "device_scale_factor": 1.0,
+        "default_width": 800,
+        "default_height": 600,
+        "preserve_original": False,
+        "error_on_fail": False,
+        "log_level": "INFO",
+        "dpi": 150,
+        "quality": 90,
+    }
 
 
 @pytest.fixture
-def sample_markdown_content():
-    """サンプルMarkdownコンテンツ"""
+def sample_svg_content():
+    """テスト用のサンプルSVGコンテンツ"""
     return """# Test Document
 
-Some text here.
-
-```mermaid
-graph TD
-    A[Start] --> B{Decision}
-    B -->|Yes| C[End]
-    B -->|No| D[Continue]
+```svg
+<svg width="100" height="100">
+  <circle cx="50" cy="50" r="40" fill="red" />
+</svg>
 ```
 
-More text here.
+Some text.
 
-```mermaid
-sequenceDiagram
-    Alice->>Bob: Hello Bob
-    Bob-->>Alice: Hello Alice
-```
-
-Final text.
+![An SVG](image.svg)
 """
 
 
 @pytest.fixture
-def sample_mermaid_code():
-    """サンプルMermaidコード"""
-    return """graph TD
-    A[Start] --> B{Decision}
-    B -->|Yes| C[End]
-    B -->|No| D[Continue]
-"""
+def sample_svg_code():
+    """サンプルSVGコード"""
+    return (
+        '<svg width="100" height="100">'
+        '<circle cx="50" cy="50" r="40" fill="red" />'
+        "</svg>"
+    )
 
 
 @pytest.fixture
@@ -217,11 +185,6 @@ def mock_ci_environment():
             "GITHUB_ACTIONS": "true",
         }.get(key)
         yield mock_getenv
-
-
-@pytest.fixture
-def mock_non_ci_environment():
-    """非CI環境のモック"""
     with patch("os.getenv") as mock_getenv:
         mock_getenv.return_value = None
         yield mock_getenv

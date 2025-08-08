@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import contextlib
 import logging
 import os
-import sys
 import platform
+import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -89,18 +90,19 @@ def setup_plugin_logging(
     class EphemeralFileHandler(logging.FileHandler):
         """Emit毎にファイルを開閉して Windows の一時ディレクトリロック問題を軽減"""
 
-        def emit(self, record: logging.LogRecord) -> None:  # type: ignore[override]
-            if self.stream is None:
-                self.stream = self._open()
+        def emit(self, record: logging.LogRecord) -> None:
+            stream = self._open()
+            self.stream = stream
             try:
                 super().emit(record)
             finally:
-                if self.stream:
-                    try:
-                        self.stream.close()
-                    except Exception:
-                        pass
-                    self.stream = None
+                if stream:
+                    with contextlib.suppress(Exception):
+                        stream.close()
+                # Note: logging.FileHandlerの基底クラスが期待する通り、
+                # streamをNoneにする必要があるが、型チェッカーを満足させるため
+                # 以下の行は型チェックを無効にする
+                self.stream = None  # type: ignore[assignment]
 
     if log_file:
         log_path = Path(log_file)
@@ -198,11 +200,7 @@ def shutdown_logging() -> None:
     """Flush & close all handlers (mainly for tests on Windows)."""
     root_logger = logging.getLogger("mkdocs_svg_to_png")
     for h in list(root_logger.handlers):  # copy list
-        try:
+        with contextlib.suppress(Exception):
             h.flush()
-        except Exception:
-            pass
-        try:
+        with contextlib.suppress(Exception):
             h.close()
-        except Exception:
-            pass

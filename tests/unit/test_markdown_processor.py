@@ -20,14 +20,9 @@ from mkdocs_svg_to_png.svg_block import SvgBlock
 class TestMarkdownProcessor:
     """MarkdownProcessorクラスのテストクラス"""
 
-    @pytest.fixture
-    def basic_config(self):
-        """テスト用の基本設定を返すfixture"""
-        return {"preserve_original": False, "log_level": "INFO"}
-
-    def test_extract_basic_svg_blocks(self, basic_config):
+    def test_extract_basic_svg_blocks(self, svg_config):
         """基本的なSVGブロック抽出のテスト"""
-        processor = MarkdownProcessor(basic_config)
+        processor = MarkdownProcessor(svg_config)
 
         markdown = """# Test
 
@@ -45,9 +40,9 @@ Some text.
         assert "image.svg" in blocks[1].file_path
         assert blocks[0].start_pos < blocks[1].start_pos
 
-    def test_extract_svg_blocks_with_attributes(self, basic_config):
+    def test_extract_svg_blocks_with_attributes(self, svg_config):
         """属性付きSVGブロックの抽出テスト"""
-        processor = MarkdownProcessor(basic_config)
+        processor = MarkdownProcessor(svg_config)
 
         markdown = """```svg {width: "200", height: '150'}
 <svg>B</svg>
@@ -57,9 +52,9 @@ Some text.
         assert blocks[0].attributes.get("width") == "200"
         assert blocks[0].attributes.get("height") == "150"
 
-    def test_extract_no_svg_blocks(self, basic_config):
+    def test_extract_no_svg_blocks(self, svg_config):
         """SVGブロックが存在しない場合の抽出テスト"""
-        processor = MarkdownProcessor(basic_config)
+        processor = MarkdownProcessor(svg_config)
 
         markdown = """# Test
 
@@ -72,9 +67,9 @@ Some text.
         blocks = processor.extract_svg_blocks(markdown)
         assert len(blocks) == 0
 
-    def test_extract_mixed_blocks_no_overlap(self, basic_config):
+    def test_extract_mixed_blocks_no_overlap(self, svg_config):
         """属性付き・属性なしブロック混在時の抽出テスト"""
-        processor = MarkdownProcessor(basic_config)
+        processor = MarkdownProcessor(svg_config)
 
         markdown = """```svg {width: 300}
 <svg>C</svg>
@@ -87,49 +82,49 @@ Some text.
         assert blocks[0].attributes.get("width") == "300"
         assert blocks[1].attributes == {}
 
-    def test_parse_attributes_basic(self, basic_config):
+    def test_parse_attributes_basic(self, svg_config):
         """属性文字列のパース基本テスト"""
-        processor = MarkdownProcessor(basic_config)
+        processor = MarkdownProcessor(svg_config)
 
         result = processor._parse_attributes("width: 200, height: 150")
         expected = {"width": "200", "height": "150"}
         assert result == expected
 
-    def test_parse_attributes_with_quotes(self, basic_config):
+    def test_parse_attributes_with_quotes(self, svg_config):
         """クォート付き属性のパーステスト"""
-        processor = MarkdownProcessor(basic_config)
+        processor = MarkdownProcessor(svg_config)
 
         result = processor._parse_attributes("width: \"200\", height: '150'")
         expected = {"width": "200", "height": "150"}
         assert result == expected
 
-    def test_parse_attributes_with_spaces(self, basic_config):
+    def test_parse_attributes_with_spaces(self, svg_config):
         """空白を含む属性文字列のパーステスト"""
-        processor = MarkdownProcessor(basic_config)
+        processor = MarkdownProcessor(svg_config)
 
         result = processor._parse_attributes("  width  :  200  ,  height  :  150  ")
         expected = {"width": "200", "height": "150"}
         assert result == expected
 
-    def test_parse_attributes_empty(self, basic_config):
+    def test_parse_attributes_empty(self, svg_config):
         """空文字列のパースで空辞書が返るかテスト"""
-        processor = MarkdownProcessor(basic_config)
+        processor = MarkdownProcessor(svg_config)
 
         result = processor._parse_attributes("")
         assert result == {}
 
-    def test_parse_attributes_invalid_format(self, basic_config):
+    def test_parse_attributes_invalid_format(self, svg_config):
         """無効な形式の属性が無視されるかテスト"""
-        processor = MarkdownProcessor(basic_config)
+        processor = MarkdownProcessor(svg_config)
 
         # 無効な形式の属性は無視される
         result = processor._parse_attributes("invalid, width: 200")
         expected = {"width": "200"}
         assert result == expected
 
-    def test_replace_blocks_with_images_basic(self, basic_config):
+    def test_replace_blocks_with_images_basic(self, svg_config):
         """画像Markdownへの置換の基本テスト"""
-        processor = MarkdownProcessor(basic_config)
+        processor = MarkdownProcessor(svg_config)
 
         markdown = """# Test
 
@@ -159,10 +154,10 @@ More content."""
             "/path/to/test.png", "test.md", False, ""
         )
 
-    def test_replace_blocks_with_images_preserve_original(self, basic_config):
+    def test_replace_blocks_with_images_preserve_original(self, svg_config):
         """元のコードも残す場合の置換テスト"""
-        basic_config["preserve_original"] = True
-        processor = MarkdownProcessor(basic_config)
+        svg_config["preserve_original"] = True
+        processor = MarkdownProcessor(svg_config)
 
         markdown = """```svg
 <svg>A</svg>
@@ -187,9 +182,9 @@ More content."""
             "/path/to/test.png", "test.md", True, ""
         )
 
-    def test_replace_blocks_mismatched_lengths(self, basic_config):
+    def test_replace_blocks_mismatched_lengths(self, svg_config):
         """ブロック数と画像パス数が異なる場合のエラーをテスト"""
-        processor = MarkdownProcessor(basic_config)
+        processor = MarkdownProcessor(svg_config)
 
         markdown = "test"
         blocks = [Mock(), Mock()]
@@ -202,9 +197,9 @@ More content."""
                 markdown, blocks, image_paths, "test.md"
             )
 
-    def test_replace_multiple_blocks_reverse_order(self, basic_config):
+    def test_replace_multiple_blocks_reverse_order(self, svg_config):
         """複数ブロックを逆順で置換することで位置ズレを防ぐテスト"""
-        processor = MarkdownProcessor(basic_config)
+        processor = MarkdownProcessor(svg_config)
 
         markdown = """```svg
 <svg>A</svg>
@@ -238,9 +233,9 @@ More content."""
         block1.get_image_markdown.assert_called_once()
         block2.get_image_markdown.assert_called_once()
 
-    def test_extract_svg_file_references(self, basic_config):
+    def test_extract_svg_file_references(self, svg_config):
         """SVGファイル参照の抽出テスト"""
-        processor = MarkdownProcessor(basic_config)
+        processor = MarkdownProcessor(svg_config)
 
         markdown = """# Test
 
@@ -255,9 +250,9 @@ Some text.
         assert svg_blocks[0].file_path == "images/test.svg"
         assert svg_blocks[1].file_path == "../assets/diagram.svg"
 
-    def test_extract_inline_svg_code_blocks(self, basic_config):
+    def test_extract_inline_svg_code_blocks(self, svg_config):
         """インラインSVGコードブロックの抽出テスト"""
-        processor = MarkdownProcessor(basic_config)
+        processor = MarkdownProcessor(svg_config)
 
         markdown = """# Test
 
@@ -281,9 +276,9 @@ Some text.
         assert "<rect" in svg_blocks[1].code
         assert svg_blocks[1].attributes.get("width") == "200"
 
-    def test_extract_mixed_svg_content(self, basic_config):
+    def test_extract_mixed_svg_content(self, svg_config):
         """SVGファイル参照とインラインSVGの混在テスト"""
-        processor = MarkdownProcessor(basic_config)
+        processor = MarkdownProcessor(svg_config)
 
         markdown = """# Test
 
@@ -302,9 +297,9 @@ Some text.
         assert any("<circle" in block.code for block in svg_blocks)
         assert any(block.file_path == "assets/chart.svg" for block in svg_blocks)
 
-    def test_resolve_svg_file_paths_from_root(self, basic_config):
+    def test_resolve_svg_file_paths_from_root(self, svg_config):
         """ルートレベルのファイルからの相対パス解決テスト"""
-        processor = MarkdownProcessor(basic_config)
+        processor = MarkdownProcessor(svg_config)
 
         blocks = [
             SvgBlock(file_path="assets/images/test.svg"),
@@ -328,9 +323,9 @@ Some text.
             == "/home/ubuntu/mkdocs-svg-to-png/docs/images/diagram.svg"
         )
 
-    def test_resolve_svg_file_paths_from_subfolder(self, basic_config):
+    def test_resolve_svg_file_paths_from_subfolder(self, svg_config):
         """サブフォルダ内のファイルからの相対パス解決テスト"""
-        processor = MarkdownProcessor(basic_config)
+        processor = MarkdownProcessor(svg_config)
 
         blocks = [
             SvgBlock(
@@ -359,9 +354,9 @@ Some text.
             == "/home/ubuntu/mkdocs-svg-to-png/docs/images/diagram.svg"
         )
 
-    def test_resolve_svg_file_paths_absolute_paths(self, basic_config):
+    def test_resolve_svg_file_paths_absolute_paths(self, svg_config):
         """絶対パスの場合はそのまま返すテスト"""
-        processor = MarkdownProcessor(basic_config)
+        processor = MarkdownProcessor(svg_config)
 
         blocks = [
             SvgBlock(file_path="/absolute/path/test.svg"),

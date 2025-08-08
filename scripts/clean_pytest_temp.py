@@ -1,9 +1,8 @@
+import getpass
 import os
 import shutil
 import stat
-import sys
 import tempfile
-import getpass
 from pathlib import Path
 
 
@@ -15,11 +14,11 @@ def main() -> int:
         print("[info] nothing to clean")
         return 0
 
-    def onerror(func, path, exc_info):  # noqa: D401
+    def onerror(func, path, exc_info):
         try:
-            os.chmod(path, stat.S_IWUSR | stat.S_IREAD)
+            Path(path).chmod(stat.S_IWUSR | stat.S_IREAD)
             func(path)
-        except Exception:  # noqa: BLE001
+        except Exception:
             print(f"[warn] cannot remove {path}")
 
     try:
@@ -29,9 +28,12 @@ def main() -> int:
     except PermissionError as e:  # pragma: no cover (環境依存)
         print(f"[error] permission: {e}")
         if os.name == "nt":
-            print("[hint] Run elevated: takeown /F \"{}\" /R /D Y && icacls \"{}\" /grant %USERNAME%:F /T /C".format(root, root))
+            print(
+                f'[hint] Run elevated: takeown /F "{root}" /R /D Y && '
+                f'icacls "{root}" /grant %USERNAME%:F /T /C'
+            )
         else:
-            print("[hint] Try: sudo rm -rf '{}'".format(root))
+            print(f"[hint] Try: sudo rm -rf '{root}'")
         return 1
 
 
