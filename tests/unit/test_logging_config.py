@@ -19,6 +19,95 @@ from mkdocs_svg_to_png.logging_config import (
 )
 
 
+class TestSimpleFormatter:
+    """Test SimpleFormatter class."""
+
+    def test_format_basic_message(self) -> None:
+        """Test formatting a basic log message in simple format."""
+        from mkdocs_svg_to_png.logging_config import SimpleFormatter
+
+        formatter = SimpleFormatter()
+        record = logging.LogRecord(
+            name="test.logger",
+            level=logging.INFO,
+            pathname="",
+            lineno=0,
+            msg="Test message",
+            args=(),
+            exc_info=None,
+        )
+
+        formatted = formatter.format(record)
+        assert formatted == "INFO    -  Test message"
+
+    def test_format_different_log_levels(self) -> None:
+        """Test formatting different log levels."""
+        from mkdocs_svg_to_png.logging_config import SimpleFormatter
+
+        formatter = SimpleFormatter()
+
+        # Test INFO level
+        record = logging.LogRecord(
+            name="test.logger",
+            level=logging.INFO,
+            pathname="",
+            lineno=0,
+            msg="Info message",
+            args=(),
+            exc_info=None,
+        )
+        formatted = formatter.format(record)
+        assert formatted == "INFO    -  Info message"
+
+        # Test WARNING level
+        record = logging.LogRecord(
+            name="test.logger",
+            level=logging.WARNING,
+            pathname="",
+            lineno=0,
+            msg="Warning message",
+            args=(),
+            exc_info=None,
+        )
+        formatted = formatter.format(record)
+        assert formatted == "WARNING -  Warning message"
+
+        # Test ERROR level
+        record = logging.LogRecord(
+            name="test.logger",
+            level=logging.ERROR,
+            pathname="",
+            lineno=0,
+            msg="Error message",
+            args=(),
+            exc_info=None,
+        )
+        formatted = formatter.format(record)
+        assert formatted == "ERROR   -  Error message"
+
+    def test_format_ignores_context_and_caller(self) -> None:
+        """Test that simple formatter ignores context and caller info."""
+        from mkdocs_svg_to_png.logging_config import SimpleFormatter
+
+        formatter = SimpleFormatter()
+        record = logging.LogRecord(
+            name="test.logger",
+            level=logging.INFO,
+            pathname="/path/to/file.py",
+            lineno=42,
+            msg="Test message",
+            args=(),
+            exc_info=None,
+            func="test_function",
+        )
+        record.context = {"key1": "value1", "key2": "value2"}
+
+        formatted = formatter.format(record)
+        assert formatted == "INFO    -  Test message"
+        assert "caller=" not in formatted
+        assert "key1=" not in formatted
+
+
 class TestStructuredFormatter:
     """Test StructuredFormatter class."""
 
@@ -200,6 +289,110 @@ class TestSetupPluginLogging:
         assert len(logger.handlers) < handler_count_with_extra
 
 
+class TestSimpleFormatterDefault:
+    """Test that SimpleFormatter is always used by default."""
+
+    def setup_method(self) -> None:
+        """Clear any existing handlers before each test."""
+        logger = logging.getLogger("mkdocs_svg_to_png")
+        logger.handlers.clear()
+
+    def test_setup_always_uses_simple_formatter(self) -> None:
+        """Test that setup always uses SimpleFormatter."""
+        from mkdocs_svg_to_png.logging_config import SimpleFormatter
+
+        setup_plugin_logging(force=True)
+
+        logger = logging.getLogger("mkdocs_svg_to_png")
+        assert len(logger.handlers) >= 1
+
+        console_handler = logger.handlers[0]
+        assert isinstance(console_handler.formatter, SimpleFormatter)
+
+    def test_file_handler_uses_simple_formatter(self) -> None:
+        """Test that file handler also uses SimpleFormatter."""
+        import tempfile
+        from pathlib import Path
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            log_file = Path(temp_dir) / "test.log"
+
+            setup_plugin_logging(log_file=log_file, force=True)
+
+            logger = logging.getLogger("mkdocs_svg_to_png")
+            assert len(logger.handlers) == 2  # Console + File
+
+            console_handler = logger.handlers[0]
+            file_handler = logger.handlers[1]
+
+            # Both should use SimpleFormatter
+            from mkdocs_svg_to_png.logging_config import SimpleFormatter
+
+            assert isinstance(console_handler.formatter, SimpleFormatter)
+            assert isinstance(file_handler.formatter, SimpleFormatter)
+
+
+class TestActualLogOutput:
+    """Test actual log message format in real-world usage."""
+
+    def setup_method(self) -> None:
+        """Clear any existing handlers before each test."""
+        logger = logging.getLogger("mkdocs_svg_to_png")
+        logger.handlers.clear()
+
+    def test_simple_format_conversion_messages(self) -> None:
+        """Test that conversion messages are formatted simply."""
+        from io import StringIO
+
+        from mkdocs_svg_to_png.logging_config import get_logger
+
+        # Capture log output
+        log_capture = StringIO()
+
+        # Set up logging with string capture
+        logger = logging.getLogger("mkdocs_svg_to_png")
+        logger.handlers.clear()
+        logger.setLevel(logging.INFO)
+
+        handler = logging.StreamHandler(log_capture)
+        from mkdocs_svg_to_png.logging_config import SimpleFormatter
+
+        handler.setFormatter(SimpleFormatter())
+        logger.addHandler(handler)
+
+        # Get a logger and emit test messages
+        plugin_logger = get_logger("mkdocs_svg_to_png.plugin")
+        plugin_logger.info(
+            "Converting SVG diagram to PNG: image.png from examples/page.md"
+        )
+        plugin_logger.info("Generated 3 images from SVG total")
+
+        # Check the captured output
+        output = log_capture.getvalue()
+        lines = output.strip().split("\n")
+
+        # Verify simple format
+        assert len(lines) == 2
+        expected_msg = (
+            "INFO    -  Converting SVG diagram to PNG: image.png from examples/page.md"
+        )
+        assert lines[0] == expected_msg
+        assert lines[1] == "INFO    -  Generated 3 images from SVG total"
+
+    def test_always_uses_simple_format(self) -> None:
+        """Test that we always get simple format regardless of setup."""
+        setup_plugin_logging(force=True)
+
+        logger = logging.getLogger("mkdocs_svg_to_png")
+        assert len(logger.handlers) >= 1
+
+        # Should always use SimpleFormatter
+        from mkdocs_svg_to_png.logging_config import SimpleFormatter
+
+        console_handler = logger.handlers[0]
+        assert isinstance(console_handler.formatter, SimpleFormatter)
+
+
 class TestGetPluginLogger:
     """Test get_plugin_logger function."""
 
@@ -351,3 +544,46 @@ class TestUnifiedLoggerFactory:
         # This will fail initially because plugin uses Optional[Any]
         if hasattr(plugin_instance, "logger") and plugin_instance.logger is not None:
             assert isinstance(plugin_instance.logger, logging.Logger)
+
+
+class TestIndividualConversionLogging:
+    """個別変換のログ出力をテストする"""
+
+    def test_conversion_log_should_show_individual_files(self):
+        """個別のSVG->PNG変換ログが出力されることを確認"""
+        from unittest.mock import Mock, patch
+
+        # モックオブジェクトを作成
+        mock_converter = Mock()
+        mock_converter.convert_svg_content = Mock(return_value=True)
+
+        # SvgProcessorとSvgBlockをインポート
+        from mkdocs_svg_to_png.processor import SvgProcessor
+        from mkdocs_svg_to_png.svg_block import SvgBlock
+
+        # プロセッサーを作成
+        config = {"error_on_fail": False, "output_dir": "images", "image_format": "png"}
+        processor = SvgProcessor(config)
+        processor.svg_converter = mock_converter
+
+        # テスト用のSVGブロックを作成
+        block = SvgBlock(code="<svg></svg>", start_pos=0, end_pos=10)
+        blocks = [block]
+
+        # ログ出力をモックでキャプチャ
+        with patch.object(processor.logger, "info") as mock_info:
+            # プロセッサーのメソッドを実行
+            processor._process_svg_blocks(blocks, "examples/test.md", "/tmp/output")
+
+            # info メソッドが呼ばれたことを確認
+            mock_info.assert_called()
+
+            # 呼び出された引数を確認
+            call_args = mock_info.call_args[0][0]  # 最初の位置引数（メッセージ）
+
+            assert (
+                "Converting SVG to PNG:" in call_args
+            ), f"期待するログメッセージが見つかりませんでした。実際: {call_args}"
+            assert (
+                ".png from examples/test.md" in call_args
+            ), f"ファイル名とソースファイルが含まれていません。実際: {call_args}"

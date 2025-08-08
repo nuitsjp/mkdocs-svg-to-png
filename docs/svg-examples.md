@@ -29,7 +29,7 @@ This page introduces various usage examples of SVG code blocks and SVG file refe
 ### Shapes with Path Element
 
 <svg width="150" height="150" xmlns="http://www.w3.org/2000/svg">
-  <path d="M75,10 L90,40 L120,40 L98,60 L105,90 L75,75 L45,90 L52,60 L30,40 L60,40 Z" 
+  <path d="M75,10 L90,40 L120,40 L98,60 L105,90 L75,75 L45,90 L52,60 L30,40 L60,40 Z"
         fill="#FFD700" stroke="#FFA500" stroke-width="2"/>
   <text x="75" y="120" text-anchor="middle" font-family="Arial" font-size="12" fill="#666">Star Shape</text>
 </svg>

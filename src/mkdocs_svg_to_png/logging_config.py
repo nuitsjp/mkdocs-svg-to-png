@@ -6,7 +6,7 @@ import os
 import platform
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, ClassVar
 
 if TYPE_CHECKING:
     from collections.abc import MutableMapping
@@ -61,13 +61,53 @@ class StructuredFormatter(logging.Formatter):
         return " ".join(parts)
 
 
+class SimpleFormatter(logging.Formatter):
+    """Simple MkDocs-style log formatter.
+
+    Formats logs as: "LEVEL   -  message"
+    Similar to MkDocs output format for better daily use experience.
+    """
+
+    # Level name formatting map for consistent alignment
+    LEVEL_FORMAT_MAP: ClassVar[dict[str, str]] = {
+        "INFO": "INFO    ",
+        "WARNING": "WARNING ",
+        "ERROR": "ERROR   ",
+        "DEBUG": "DEBUG   ",
+        "CRITICAL": "CRITICAL",
+    }
+
+    def format(self, record: logging.LogRecord) -> str:
+        """Format the log record in simple MkDocs style.
+
+        Args:
+            record: The log record to format
+
+        Returns:
+            Formatted log message string
+        """
+        level = record.levelname
+        message = record.getMessage()
+
+        # Use predefined formatting or fallback to padded level name
+        level_str = self.LEVEL_FORMAT_MAP.get(level, f"{level:<8}")
+
+        return f"{level_str}-  {message}"
+
+
 def setup_plugin_logging(
     *,
     level: str = "INFO",
-    include_caller: bool = True,
     log_file: str | Path | None = None,
     force: bool = False,
 ) -> None:
+    """Setup plugin logging with simple format.
+
+    Args:
+        level: Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+        log_file: Optional log file path
+        force: Force re-setup even if handlers exist
+    """
     env_level = os.environ.get("MKDOCS_SVG_TO_PNG_LOG_LEVEL", "").upper()
     if env_level in ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]:
         level = env_level
@@ -82,9 +122,12 @@ def setup_plugin_logging(
 
     logger.setLevel(getattr(logging, level.upper()))
 
+    # Always use SimpleFormatter for better daily use experience
+    formatter = SimpleFormatter()
+
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setLevel(getattr(logging, level.upper()))
-    console_handler.setFormatter(StructuredFormatter(include_caller=include_caller))
+    console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
 
     class EphemeralFileHandler(logging.FileHandler):
@@ -115,7 +158,8 @@ def setup_plugin_logging(
 
         file_handler = handler_cls(log_path, encoding="utf-8")
         file_handler.setLevel(getattr(logging, level.upper()))
-        file_handler.setFormatter(StructuredFormatter(include_caller=include_caller))
+        # Use same simple formatter for file handler
+        file_handler.setFormatter(formatter)
         logger.addHandler(file_handler)
         logger.log(getattr(logging, level.upper()), "Log file initialized")
 

@@ -61,7 +61,7 @@ class SvgToPngConverter:
             success = self._run_playwright_conversion(svg_content, output_path)
 
             if success:
-                self.logger.info(f"Generated PNG image: {output_path}")
+                self.logger.debug(f"Generated PNG image: {output_path}")
                 return True
             else:
                 return False

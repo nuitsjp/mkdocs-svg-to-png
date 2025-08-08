@@ -74,6 +74,13 @@ class SvgProcessor:
         for i, block in enumerate(blocks):
             try:
                 image_path = self._generate_image_path(block, page_file, i, output_dir)
+
+                # 個別変換開始のログを出力
+                image_filename = Path(image_path).name
+                self.logger.info(
+                    f"Converting SVG to PNG: {image_filename} from {page_file}"
+                )
+
                 success = block.generate_png(
                     str(image_path), self.svg_converter, self.config
                 )

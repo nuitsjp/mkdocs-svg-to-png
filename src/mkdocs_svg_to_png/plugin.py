@@ -15,7 +15,7 @@ from .exceptions import (
     SvgFileError,
     SvgValidationError,
 )
-from .logging_config import get_logger
+from .logging_config import get_logger, setup_plugin_logging
 from .processor import SvgProcessor
 from .utils import clean_generated_images
 
@@ -55,13 +55,16 @@ class SvgToPngPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped-call]
                 config_dict["log_level"] = "DEBUG"
             # else: config_dictのlog_levelをそのまま使用
 
+            # ログフォーマットの設定を適用（常にSimpleFormatter使用）
+            setup_plugin_logging(level=config_dict.get("log_level", "INFO"), force=True)
+
             if not self._should_be_enabled(self.config):
-                self.logger.info("SVG to PNG plugin is disabled")
+                self.logger.info("svg-to-png plugin is disabled")
                 return config
 
             self.processor = SvgProcessor(config_dict)
 
-            self.logger.info("SVG to PNG plugin initialized successfully")
+            self.logger.info("svg-to-png plugin initialized")
 
         except (SvgConfigError, SvgFileError) as e:
             self.logger.error(f"Configuration error: {e!s}")
@@ -180,7 +183,7 @@ class SvgToPngPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped-call]
             # 画像を生成した場合、常にINFOレベルでログを出力
             if image_paths:
                 self.logger.info(
-                    f"Generated {len(image_paths)} PNGs from SVGs for "
+                    f"Generated {len(image_paths)} images from SVG for "
                     f"{page.file.src_path}"
                 )
 
@@ -242,7 +245,7 @@ class SvgToPngPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped-call]
         # 生成した画像の総数をINFOレベルで出力
         if self.generated_images:
             self.logger.info(
-                f"Generated {len(self.generated_images)} PNGs from SVGs total"
+                f"Generated {len(self.generated_images)} images from SVG total"
             )
 
         # 生成画像のクリーンアップ

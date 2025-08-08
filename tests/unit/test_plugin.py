@@ -137,3 +137,79 @@ class TestSvgToPngPlugin:
         assert result == "modified content"
         assert plugin.generated_images == ["/path/to/image.png"]
         mock_processor.process_page.assert_called_once()
+
+    def test_plugin_initialization_log_message(self, plugin, mock_config):
+        """プラグイン初期化ログメッセージが新形式であることをテスト (TDD RED)"""
+        plugin.config = {
+            "enabled": True,
+            "output_dir": "assets/images",
+            "image_format": "png",
+            "preserve_original": False,
+            "error_on_fail": False,
+            "log_level": "INFO",
+        }
+
+        # プラグインのloggerを直接モック
+        mock_logger_instance = Mock()
+        plugin.logger = mock_logger_instance
+
+        with patch("mkdocs_svg_to_png.plugin.SvgProcessor"):
+            plugin.on_config(mock_config)
+
+            # 新しい簡潔な形式でログが出力されることを期待
+            mock_logger_instance.info.assert_called_with(
+                "svg-to-png plugin initialized"
+            )
+
+    def test_page_processing_log_message(self, plugin, mock_page, mock_config):
+        """ページ処理ログメッセージが新形式であることをテスト (TDD RED)"""
+        plugin.config = {
+            "enabled": True,
+            "output_dir": "assets/images",
+            "error_on_fail": False,
+            "log_level": "INFO",
+        }
+
+        # processorとloggerをモック
+        mock_processor = Mock()
+        mock_processor.process_page.return_value = (
+            "modified content",
+            ["/path/to/image1.png", "/path/to/image2.png"],
+        )
+        plugin.processor = mock_processor
+
+        with patch("mkdocs_svg_to_png.plugin.get_logger") as mock_logger:
+            mock_logger_instance = Mock()
+            mock_logger.return_value = mock_logger_instance
+            plugin.logger = mock_logger_instance
+
+            markdown = "# Test\n\n```svg\n<svg></svg>\n```"
+            plugin.on_page_markdown(
+                markdown, page=mock_page, config=mock_config, files=[]
+            )
+
+            # 新しい簡潔な形式でログが出力されることを期待
+            mock_logger_instance.info.assert_called_with(
+                "Generated 2 images from SVG for test.md"
+            )
+
+    def test_post_build_total_log_message(self, plugin, mock_config):
+        """ビルド完了後の総数ログメッセージが新形式であることをテスト (TDD RED)"""
+        plugin.config = {"enabled": True}
+        plugin.generated_images = [
+            "/path/to/image1.png",
+            "/path/to/image2.png",
+            "/path/to/image3.png",
+        ]
+
+        with patch("mkdocs_svg_to_png.plugin.get_logger") as mock_logger:
+            mock_logger_instance = Mock()
+            mock_logger.return_value = mock_logger_instance
+            plugin.logger = mock_logger_instance
+
+            plugin.on_post_build(config=mock_config)
+
+            # 新しい簡潔な形式でログが出力されることを期待
+            mock_logger_instance.info.assert_called_with(
+                "Generated 3 images from SVG total"
+            )
