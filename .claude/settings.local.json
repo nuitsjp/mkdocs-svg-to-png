@@ -31,7 +31,10 @@
       "Bash(set PYTHONPATH=%PYTHONPATH%)",
       "Bash(%cd%src)",
       "Bash(ruff check:*)",
-      "Bash(mypy:*)"
+      "Bash(mypy:*)",
+      "Bash(set \"ENABLE_PDF_EXPORT=1\")",
+      "Bash(pip install:*)",
+      "Bash(set ENABLE_PDF_EXPORT=1)"
     ],
     "deny": []
   }
