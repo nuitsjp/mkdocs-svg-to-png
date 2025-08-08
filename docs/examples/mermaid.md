@@ -14,7 +14,7 @@ flowchart TD
     C --> E[結果を保存]
     D --> E
     E --> F[終了]
-    
+
     style A fill:#e1f5fe
     style F fill:#f3e5f5
     style B fill:#fff3e0
@@ -37,7 +37,7 @@ sequenceDiagram
     D-->>-A: ユーザーデータ
     A-->>-W: 認証結果
     W-->>-U: ログイン完了
-    
+
     Note over U,D: 認証プロセス
 ```
 
@@ -58,7 +58,7 @@ erDiagram
         string name
         datetime created_at
     }
-    
+
     ORDER {
         int order_id PK
         int user_id FK
@@ -66,7 +66,7 @@ erDiagram
         decimal total_amount
         string status
     }
-    
+
     PRODUCT {
         int product_id PK
         int category_id FK
@@ -88,28 +88,28 @@ classDiagram
         +makeSound() String
         +move() void
     }
-    
+
     class Dog {
         +String breed
         +bark() String
         +wagTail() void
     }
-    
+
     class Cat {
         +String color
         +boolean isIndoor
         +meow() String
         +purr() void
     }
-    
+
     Animal <|-- Dog : 継承
     Animal <|-- Cat : 継承
-    
+
     class Owner {
         +String name
         +feedAnimal(Animal) void
     }
-    
+
     Owner o-- Animal : 飼っている
 ```
 
@@ -140,17 +140,17 @@ gantt
     title プロジェクト開発スケジュール
     dateFormat YYYY-MM-DD
     axisFormat %m/%d
-    
+
     section 設計フェーズ
     要件定義         :done, req, 2024-01-01, 2024-01-15
     基本設計         :done, design, 2024-01-10, 2024-01-25
     詳細設計         :active, detail, 2024-01-20, 2024-02-05
-    
+
     section 開発フェーズ
     フロントエンド開発 :dev1, after detail, 20d
     バックエンド開発   :dev2, after detail, 25d
     統合テスト        :test, after dev1, 10d
-    
+
     section デプロイ
     本番リリース      :deploy, after test, 3d
 ```
@@ -184,7 +184,7 @@ flowchart LR
     H -->|Yes| B
     H -->|No| I[End]
     F --> I
-    
+
     style F fill:#90EE90
     style I fill:#FFB6C1
     style G fill:#FFE4B5
