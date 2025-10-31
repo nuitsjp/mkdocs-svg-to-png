@@ -151,7 +151,7 @@ More content."""
         assert "![SVG Diagram](assets/images/test.png)" in result
         assert "```svg" not in result
         mock_block.get_image_markdown.assert_called_once_with(
-            "/path/to/test.png", "test.md", False, "", "assets/images"
+            "/path/to/test.png", "test.md", False, "assets/images"
         )
 
     def test_replace_blocks_with_images_preserve_original(self, svg_config):
@@ -179,7 +179,7 @@ More content."""
         assert "![SVG Diagram](test.png)" in result
         assert "```svg" in result  # Original preserved
         mock_block.get_image_markdown.assert_called_once_with(
-            "/path/to/test.png", "test.md", True, "", "assets/images"
+            "/path/to/test.png", "test.md", True, "assets/images"
         )
 
     def test_replace_blocks_mismatched_lengths(self, svg_config):

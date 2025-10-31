@@ -1,10 +1,18 @@
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Union
 
-from .exceptions import SvgConversionError, SvgFileError, SvgImageError
+from .exceptions import SvgImageError
 from .logging_config import get_logger
 from .markdown_processor import MarkdownProcessor
+from .svg_block import SvgBlock
 from .svg_converter import SvgToPngConverter
+
+
+@dataclass(slots=True)
+class SvgBlockProcessingResult:
+    block: SvgBlock
+    image_path: str
 
 
 class SvgProcessor:
@@ -20,7 +28,6 @@ class SvgProcessor:
         page_file: str,
         markdown_content: str,
         output_dir: Union[str, Path],
-        page_url: str = "",
         docs_dir: Union[str, Path, None] = None,
     ) -> tuple[str, list[str]]:
         blocks = self.markdown_processor.extract_svg_blocks(markdown_content)
@@ -29,22 +36,36 @@ class SvgProcessor:
             return markdown_content, []
 
         self._resolve_svg_file_paths(blocks, docs_dir, page_file)
-        image_paths, successful_blocks = self._process_svg_blocks(
-            blocks, page_file, output_dir
-        )
+        results = self._process_svg_blocks(blocks, page_file, output_dir)
 
-        if successful_blocks:
+        if results:
+            image_paths = [result.image_path for result in results]
+            successful_blocks = [result.block for result in results]
             modified_content = self.markdown_processor.replace_blocks_with_images(
-                markdown_content, successful_blocks, image_paths, page_file, page_url
+                markdown_content, successful_blocks, image_paths, page_file
             )
             return modified_content, image_paths
 
         return markdown_content, []
 
     def _resolve_svg_file_paths(
-        self, blocks: list[Any], docs_dir: Union[str, Path, None], page_file: str = ""
+        self,
+        blocks: list[SvgBlock],
+        docs_dir: Union[str, Path, None],
+        page_file: str = "",
     ) -> None:
         """SVGファイルパスを解決する"""
+        if any(not isinstance(block, SvgBlock) for block in blocks):
+            invalid_types = {
+                type(block).__name__
+                for block in blocks
+                if not isinstance(block, SvgBlock)
+            }
+            types_str = ", ".join(sorted(invalid_types)) or "Unknown"
+            raise TypeError(
+                f"blocks must contain only SvgBlock instances, got: {types_str}"
+            )
+
         if not docs_dir:
             return
 
@@ -65,11 +86,10 @@ class SvgProcessor:
                 block.file_path = resolved_path
 
     def _process_svg_blocks(
-        self, blocks: list[Any], page_file: str, output_dir: Union[str, Path]
-    ) -> tuple[list[str], list[Any]]:
+        self, blocks: list[SvgBlock], page_file: str, output_dir: Union[str, Path]
+    ) -> list[SvgBlockProcessingResult]:
         """SVGブロックを処理してPNG画像を生成する"""
-        image_paths: list[str] = []
-        successful_blocks: list[Any] = []
+        results: list[SvgBlockProcessingResult] = []
 
         for i, block in enumerate(blocks):
             try:
@@ -81,13 +101,14 @@ class SvgProcessor:
                     f"Converting SVG to PNG: {image_filename} from {page_file}"
                 )
 
-                success = block.generate_png(
-                    str(image_path), self.svg_converter, self.config
-                )
+                success = block.generate_png(str(image_path), self.svg_converter)
 
                 if success:
-                    image_paths.append(str(image_path))
-                    successful_blocks.append(block)
+                    results.append(
+                        SvgBlockProcessingResult(
+                            block=block, image_path=str(image_path)
+                        )
+                    )
                 elif self.config["error_on_fail"]:
                     raise SvgImageError(
                         f"PNG generation failed for block {i} in {page_file}",
@@ -105,7 +126,7 @@ class SvgProcessor:
                     raise
                 self.logger.error(f"Error processing block {i} in {page_file}: {e}")
 
-        return image_paths, successful_blocks
+        return results
 
     def _generate_image_path(
         self, block: Any, page_file: str, index: int, output_dir: Union[str, Path]
@@ -113,58 +134,3 @@ class SvgProcessor:
         """画像パスを生成する"""
         image_filename = str(block.get_filename(page_file, index, "png"))
         return Path(str(output_dir)) / image_filename
-
-    def _log_generation_failure(
-        self, page_file: str, index: int, image_path: Path
-    ) -> None:
-        """PNG生成失敗をログに記録する"""
-        self.logger.warning(
-            "PNG generation failed, keeping original SVG block",
-            extra={
-                "context": {
-                    "page_file": page_file,
-                    "block_index": index,
-                    "image_path": str(image_path),
-                    "suggestion": "Check SVG content and CairoSVG installation",
-                }
-            },
-        )
-
-    def _raise_generation_error(
-        self, page_file: str, index: int, image_path: Path
-    ) -> None:
-        """PNG生成エラーを発生させる"""
-        raise SvgImageError(
-            f"PNG generation failed for block {index} in {page_file}",
-            image_path=str(image_path),
-            suggestion="Check SVG content and CairoSVG installation",
-        )
-
-    def _handle_file_error(
-        self, error: Exception, page_file: str, index: int, image_path: Path
-    ) -> bool:
-        """ファイルシステムエラーを処理する"""
-        error_msg = (
-            f"File system error processing block {index} in {page_file}: {error!s}"
-        )
-        self.logger.error(error_msg)
-        if self.config["error_on_fail"]:
-            raise SvgFileError(
-                error_msg,
-                file_path=str(image_path),
-                operation="image_generation",
-                suggestion="Check file permissions and ensure output directory exists",
-            ) from error
-        return False
-
-    def _handle_unexpected_error(
-        self, error: Exception, page_file: str, index: int
-    ) -> bool:
-        """予期しないエラーを処理する"""
-        error_msg = (
-            f"Unexpected error processing block {index} in {page_file}: {error!s}"
-        )
-        self.logger.error(error_msg)
-        if self.config["error_on_fail"]:
-            raise SvgConversionError(error_msg) from error
-        return False

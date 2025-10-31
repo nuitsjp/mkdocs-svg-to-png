@@ -29,7 +29,6 @@ class MarkdownProcessor:
         blocks: list[SvgBlock],
         image_paths: list[str],
         page_file: str,
-        page_url: str = "",
     ) -> str:
         if len(blocks) != len(image_paths):
             raise SvgParsingError(
@@ -49,7 +48,6 @@ class MarkdownProcessor:
                 image_path,
                 page_file,
                 self.config.get("preserve_original", False),
-                page_url,
                 self.config.get("output_dir", "assets/images"),
             )
 

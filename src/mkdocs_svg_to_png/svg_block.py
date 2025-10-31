@@ -55,9 +55,7 @@ class SvgBlock:
                 f"start={self.start_pos}, end={self.end_pos})"
             )
 
-    def generate_png(
-        self, output_path: str, svg_converter: Any, config: dict[str, Any]
-    ) -> bool:
+    def generate_png(self, output_path: str, svg_converter: Any) -> bool:
         """SVGからPNG画像を生成する"""
         if self.file_path:
             # SVGファイルから変換
@@ -72,7 +70,6 @@ class SvgBlock:
         image_path: str,
         page_file: str,
         preserve_original: bool = False,
-        page_url: str = "",
         output_dir: str | Path | None = None,
     ) -> str:
         """画像のMarkdownを生成する"""

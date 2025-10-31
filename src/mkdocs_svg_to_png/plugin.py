@@ -171,7 +171,6 @@ class SvgToPngPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped-call]
                 page.file.src_path,
                 markdown,
                 output_dir,
-                page_url=page.url,
                 docs_dir=docs_dir,
             )
 

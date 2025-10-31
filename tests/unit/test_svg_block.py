@@ -74,8 +74,7 @@ class TestSvgBlock:
         mock_converter = Mock()
         mock_converter.convert_svg_content.return_value = True
 
-        config = {"dpi": 300, "quality": 95}
-        result = block.generate_png("output.png", mock_converter, config)
+        result = block.generate_png("output.png", mock_converter)
 
         assert result is True
         mock_converter.convert_svg_content.assert_called_once_with(
@@ -91,8 +90,7 @@ class TestSvgBlock:
         mock_converter = Mock()
         mock_converter.convert_svg_file.return_value = True
 
-        config = {"dpi": 150, "quality": 80}
-        result = block.generate_png("output.png", mock_converter, config)
+        result = block.generate_png("output.png", mock_converter)
 
         assert result is True
         mock_converter.convert_svg_file.assert_called_once_with(file_path, "output.png")
