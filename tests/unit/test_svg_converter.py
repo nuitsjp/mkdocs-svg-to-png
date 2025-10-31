@@ -16,6 +16,17 @@ from mkdocs_svg_to_png.svg_converter import SvgToPngConverter
 class TestSvgToPngConverter:
     """Test SvgToPngConverter class."""
 
+    @pytest.fixture(autouse=True)
+    def mock_playwright_conversion(self):
+        """Playwright実行をモックしてテストからブラウザ依存を排除する。"""
+        with patch.object(
+            SvgToPngConverter,
+            "_run_playwright_conversion",
+            autospec=True,
+        ) as mock_conversion:
+            mock_conversion.return_value = True
+            yield mock_conversion
+
     @pytest.fixture
     def converter(self, svg_config):
         """Create SvgToPngConverter instance."""
@@ -29,7 +40,11 @@ class TestSvgToPngConverter:
     @patch("mkdocs_svg_to_png.svg_converter.ensure_directory")
     @patch("mkdocs_svg_to_png.svg_converter.Path")
     def test_convert_svg_content_to_png_success(
-        self, mock_path, mock_ensure_directory, converter
+        self,
+        mock_path,
+        mock_ensure_directory,
+        converter,
+        mock_playwright_conversion,
     ):
         """Test successful SVG content to PNG conversion."""
         svg_content = (
@@ -44,6 +59,9 @@ class TestSvgToPngConverter:
 
         assert result is True
         mock_ensure_directory.assert_called_once_with("/tmp")
+        mock_playwright_conversion.assert_called_once_with(
+            converter, svg_content, output_path
+        )
 
     @patch("mkdocs_svg_to_png.svg_converter.Path")
     def test_convert_svg_file_to_png_success(self, mock_path, converter):
@@ -76,26 +94,52 @@ class TestSvgToPngConverter:
             "<svg width='100' height='100'><rect/></svg>", output_path
         )
 
-    @patch("mkdocs_svg_to_png.svg_converter.Path")
+    def test_import_svg_converter_without_playwright(self):
+        """SvgToPngConverter module should import even if Playwright is absent."""
+        import importlib
+        import sys
+
+        module_name = "mkdocs_svg_to_png.svg_converter"
+        sys.modules.pop(module_name, None)
+
+        original_playwright = sys.modules.pop("playwright", None)
+        original_async_api = sys.modules.pop("playwright.async_api", None)
+
+        try:
+            sys.modules["playwright"] = None
+            sys.modules["playwright.async_api"] = None
+
+            module = importlib.import_module(module_name)
+        finally:
+            sys.modules.pop("playwright", None)
+            sys.modules.pop("playwright.async_api", None)
+            if original_playwright is not None:
+                sys.modules["playwright"] = original_playwright
+            if original_async_api is not None:
+                sys.modules["playwright.async_api"] = original_async_api
+
+        globals()["SvgToPngConverter"] = module.SvgToPngConverter
+        assert hasattr(module, "SvgToPngConverter")
+
     def test_convert_svg_file_read_failure_returns_false_without_retry(
-        self, mock_path, svg_config
+        self, tmp_path, svg_config
     ):
         """Read failure should be handled once without retrying the file read."""
         converter = SvgToPngConverter({**svg_config, "error_on_fail": False})
 
-        svg_path = "/tmp/inaccessible.svg"
+        svg_path = tmp_path / "inaccessible.svg"
         output_path = "/tmp/out.png"
 
-        mock_svg_path = Mock()
-        mock_svg_path.exists.return_value = True
-        mock_svg_path.read_text.side_effect = PermissionError("denied")
+        svg_path.write_text("<svg></svg>", encoding="utf-8")
 
-        mock_path.return_value = mock_svg_path
-
-        result = converter.convert_svg_file(svg_path, output_path)
+        with patch(
+            "mkdocs_svg_to_png.svg_converter.Path.read_text",
+            side_effect=PermissionError("denied"),
+        ) as mock_read_text:
+            result = converter.convert_svg_file(str(svg_path), output_path)
 
         assert result is False
-        assert mock_svg_path.read_text.call_count == 1
+        assert mock_read_text.call_count == 1
 
     def test_convert_svg_content_playwright_error(self):
         """Test Playwright error handling."""
@@ -205,7 +249,9 @@ class TestSvgToPngConverter:
 
     @patch("mkdocs_svg_to_png.svg_converter.ensure_directory")
     @patch("mkdocs_svg_to_png.svg_converter.Path")
-    def test_convert_with_custom_scale(self, mock_path, mock_ensure_directory):
+    def test_convert_with_custom_scale(
+        self, mock_path, mock_ensure_directory, mock_playwright_conversion
+    ):
         """Test conversion with custom scale setting."""
         config = {
             "output_dir": "assets/images",
@@ -222,6 +268,9 @@ class TestSvgToPngConverter:
         )
 
         assert result is True
+        mock_playwright_conversion.assert_called_once_with(
+            converter, "<svg width='100' height='100'/>", "/tmp/test.png"
+        )
 
     def test_validate_svg_content_valid(self, converter):
         """Test SVG content validation with valid content."""
@@ -281,7 +330,9 @@ class TestSvgToPngConverter:
         result = converter._parse_dimension("invalid", 75)
         assert result == 75
 
-    def test_convert_transparent_background_svg(self, tmp_path):
+    def test_convert_transparent_background_svg(
+        self, tmp_path, mock_playwright_conversion
+    ):
         """Test conversion of SVG with transparent background.
 
         This test verifies that SVG files with transparent backgrounds
@@ -310,17 +361,12 @@ class TestSvgToPngConverter:
         # Convert SVG to PNG
         result = converter.convert_svg_content(svg_content, str(output_path))
 
-        # Conversion should succeed
         assert result is True
+        mock_playwright_conversion.assert_called_once_with(
+            converter, svg_content, str(output_path)
+        )
 
-        # Verify PNG file was created
-        assert output_path.exists()
-
-        # TODO: Add pixel-level verification for transparent background
-        # This would require image analysis library like Pillow
-        # For now, we rely on manual verification that the PNG has transparency
-
-    def test_convert_red_background_svg(self, tmp_path):
+    def test_convert_red_background_svg(self, tmp_path, mock_playwright_conversion):
         """Test conversion of SVG with red background.
 
         This test verifies that SVG files with colored backgrounds
@@ -348,12 +394,7 @@ class TestSvgToPngConverter:
         # Convert SVG to PNG
         result = converter.convert_svg_content(svg_content, str(output_path))
 
-        # Conversion should succeed
         assert result is True
-
-        # Verify PNG file was created
-        assert output_path.exists()
-
-        # TODO: Add pixel-level verification for red background
-        # This would require image analysis library like Pillow
-        # For now, we rely on manual verification that the PNG has red background
+        mock_playwright_conversion.assert_called_once_with(
+            converter, svg_content, str(output_path)
+        )

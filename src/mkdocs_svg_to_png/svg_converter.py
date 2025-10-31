@@ -8,14 +8,6 @@ from pathlib import Path
 from typing import Any
 
 try:
-    from playwright.async_api import async_playwright
-except ImportError:
-    raise ImportError(
-        "Playwright is required for SVG to PNG conversion. "
-        "Install it with: pip install playwright && playwright install chromium"
-    ) from None
-
-try:
     import defusedxml.ElementTree as ET
 except ImportError:
     # Fallback to standard library (less secure but available)
@@ -37,6 +29,7 @@ class SvgToPngConverter:
         """
         self.config = config
         self.logger = get_logger(__name__)
+        self._async_playwright: Any | None = None
 
     def convert_svg_content(self, svg_content: str, output_path: str) -> bool:
         """Convert SVG content string to PNG file.
@@ -157,6 +150,8 @@ class SvgToPngConverter:
         Returns:
             True if conversion was successful, False otherwise
         """
+        async_playwright = self._get_async_playwright()
+
         async with async_playwright() as p:
             # Launch Chromium browser
             browser = await p.chromium.launch(headless=True)
@@ -218,6 +213,20 @@ class SvgToPngConverter:
 
             finally:
                 await browser.close()
+
+    def _get_async_playwright(self) -> Any:
+        """Lazily import Playwright to avoid module import failures."""
+        if self._async_playwright is None:
+            try:
+                from playwright.async_api import async_playwright as playwright_loader
+            except ImportError as error:
+                raise ImportError(
+                    "Playwright is required for SVG to PNG conversion. "
+                    "Install it with: pip install playwright && "
+                    "playwright install chromium"
+                ) from error
+            self._async_playwright = playwright_loader
+        return self._async_playwright
 
     def _extract_svg_dimensions(self, svg_content: str) -> tuple[int, int]:
         """Extract width and height from SVG content.
