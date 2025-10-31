@@ -1,9 +1,13 @@
+"""プラグインで共有する設定・ログコンテキストの型定義。"""
+
 from __future__ import annotations
 
 from typing import Literal, TypedDict
 
 
 class PluginConfigDict(TypedDict, total=False):
+    """設定ファイルや runtime から受け取るプラグイン設定の型。"""
+
     output_dir: str
     image_format: Literal["png", "svg"]
     preserve_original: bool
@@ -14,6 +18,8 @@ class PluginConfigDict(TypedDict, total=False):
 
 
 class LogContext(TypedDict, total=False):
+    """ログ出力時に付随させる追加情報の型。"""
+
     page_file: str | None
     block_index: int | None
     image_format: Literal["png", "svg"] | None

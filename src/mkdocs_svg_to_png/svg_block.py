@@ -5,13 +5,13 @@ from .utils import generate_image_filename
 
 
 def _calculate_relative_path_prefix(page_file: str) -> str:
-    """ページファイルパスから適切な相対パスプレフィックスを計算する
+    """ページファイルパスから適切な相対パスプレフィックスを計算する。
 
-    Args:
+    引数:
         page_file: ページファイルのパス（例: "appendix/mkdocs-architecture.md"）
 
-    Returns:
-        相対パスプレフィックス（例: "../" or "../../../"）
+    戻り値:
+        相対パスプレフィックス（例: "../" や "../../../"）
     """
     if not page_file:
         return ""
@@ -29,6 +29,8 @@ def _calculate_relative_path_prefix(page_file: str) -> str:
 
 
 class SvgBlock:
+    """Markdown から抽出した SVG ブロックを表現し、変換ユーティリティを提供する。"""
+
     def __init__(
         self,
         code: str = "",
@@ -37,6 +39,7 @@ class SvgBlock:
         end_pos: int = 0,
         attributes: dict[str, Any] | None = None,
     ):
+        """ブロック内容と位置情報、付与属性を保持する。"""
         self.code = code.strip()
         self.file_path = file_path
         self.start_pos = start_pos
@@ -56,7 +59,7 @@ class SvgBlock:
             )
 
     def generate_png(self, output_path: str, svg_converter: Any) -> bool:
-        """SVGからPNG画像を生成する"""
+        """保持している SVG 情報から PNG 変換を実行する。"""
         if self.file_path:
             # SVGファイルから変換
             result = svg_converter.convert_svg_file(self.file_path, output_path)
@@ -72,7 +75,7 @@ class SvgBlock:
         preserve_original: bool = False,
         output_dir: str | Path | None = None,
     ) -> str:
-        """画像のMarkdownを生成する"""
+        """変換結果の PNG を指す Markdown 記法を生成する。"""
         relative_image_subpath = _build_relative_image_subpath(image_path, output_dir)
 
         # 相対パスプレフィックスを計算
@@ -104,7 +107,7 @@ class SvgBlock:
         return image_markdown
 
     def get_filename(self, page_file: str, index: int, image_format: str) -> str:
-        """画像ファイル名を生成する"""
+        """ページ情報とブロック内容を基に安定した画像ファイル名を生成する。"""
         content = self.file_path if self.file_path else self.code
         return generate_image_filename(page_file, index, content, image_format)
 
@@ -112,7 +115,7 @@ class SvgBlock:
 def _build_relative_image_subpath(
     image_path: str, output_dir: str | Path | None
 ) -> str:
-    """生成された画像パスと設定された出力ディレクトリから、ページ基準で参照する相対部分を構築する。"""
+    """生成画像と出力ディレクトリから、ページ基準の相対参照パスを組み立てる。"""
     image_path_obj = Path(image_path)
     image_path_posix = PurePosixPath(str(image_path_obj).replace("\\", "/"))
     output_dir_str = str(output_dir) if output_dir else "assets/images"

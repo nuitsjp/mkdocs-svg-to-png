@@ -11,12 +11,17 @@ from .svg_converter import SvgToPngConverter
 
 @dataclass(slots=True)
 class SvgBlockProcessingResult:
+    """SVG ブロックと生成された画像パスのペアを保持する結果。"""
+
     block: SvgBlock
     image_path: str
 
 
 class SvgProcessor:
+    """Markdown と SVG 変換器を連携させてページ全体を処理する。"""
+
     def __init__(self, config: dict[str, Any]) -> None:
+        """変換設定を保持し、協調するコンポーネントを初期化する。"""
         self.config = config
         self.logger = get_logger(__name__)
 
@@ -30,12 +35,15 @@ class SvgProcessor:
         output_dir: Union[str, Path],
         docs_dir: Union[str, Path, None] = None,
     ) -> tuple[str, list[str]]:
+        """1ページ分の Markdown を走査し、SVG を PNG へ変換・置換する。"""
         blocks = self.markdown_processor.extract_svg_blocks(markdown_content)
 
         if not blocks:
             return markdown_content, []
 
+        # ブロックが参照するファイルパスを実行環境に合わせて解決する
         self._resolve_svg_file_paths(blocks, docs_dir, page_file)
+        # 各ブロックを変換し、生成された画像情報を集約する
         results = self._process_svg_blocks(blocks, page_file, output_dir)
 
         if results:
@@ -54,7 +62,7 @@ class SvgProcessor:
         docs_dir: Union[str, Path, None],
         page_file: str = "",
     ) -> None:
-        """SVGファイルパスを解決する"""
+        """SVG ブロックのファイルパスをドキュメント構造に合わせて解決する。"""
         if any(not isinstance(block, SvgBlock) for block in blocks):
             invalid_types = {
                 type(block).__name__
@@ -80,7 +88,7 @@ class SvgProcessor:
                 blocks, str(docs_dir)
             )
 
-        # 解決されたパスをブロックに設定
+        # 解決されたパスを各ブロックへ反映する
         for block, resolved_path in zip(blocks, resolved_paths):
             if resolved_path and block.file_path:  # ファイル参照の場合のみ
                 block.file_path = resolved_path
@@ -88,7 +96,7 @@ class SvgProcessor:
     def _process_svg_blocks(
         self, blocks: list[SvgBlock], page_file: str, output_dir: Union[str, Path]
     ) -> list[SvgBlockProcessingResult]:
-        """SVGブロックを処理してPNG画像を生成する"""
+        """SVG ブロックごとに PNG 変換を実行し、成功した結果を返す。"""
         results: list[SvgBlockProcessingResult] = []
 
         for i, block in enumerate(blocks):
@@ -131,6 +139,6 @@ class SvgProcessor:
     def _generate_image_path(
         self, block: Any, page_file: str, index: int, output_dir: Union[str, Path]
     ) -> Path:
-        """画像パスを生成する"""
+        """ブロックとページ情報から PNG の出力先パスを算出する。"""
         image_filename = str(block.get_filename(page_file, index, "png"))
         return Path(str(output_dir)) / image_filename
