@@ -49,7 +49,8 @@ jobs:
 
     - name: Check for security issues
       run: |
-        uv run pip-audit
+        # 現状修正版が存在しないGHSA-2qfp-q593-8484 (brotli) を一時的に無視
+        uv run pip-audit --ignore-vuln GHSA-2qfp-q593-8484
         uv run bandit -c pyproject.toml -r src/
 
   type-check:
