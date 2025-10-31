@@ -1,4 +1,4 @@
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 from .utils import generate_image_filename
@@ -73,15 +73,16 @@ class SvgBlock:
         page_file: str,
         preserve_original: bool = False,
         page_url: str = "",
+        output_dir: str | Path | None = None,
     ) -> str:
         """画像のMarkdownを生成する"""
-        image_path_obj = Path(image_path)
+        relative_image_subpath = _build_relative_image_subpath(image_path, output_dir)
 
         # 相対パスプレフィックスを計算
         relative_prefix = _calculate_relative_path_prefix(page_file)
 
         # 相対パス付きで画像パスを構築
-        relative_image_path = f"{relative_prefix}assets/images/{image_path_obj.name}"
+        relative_image_path = f"{relative_prefix}{relative_image_subpath}"
 
         image_markdown = f"![SVG Diagram]({relative_image_path})"
 
@@ -109,3 +110,33 @@ class SvgBlock:
         """画像ファイル名を生成する"""
         content = self.file_path if self.file_path else self.code
         return generate_image_filename(page_file, index, content, image_format)
+
+
+def _build_relative_image_subpath(
+    image_path: str, output_dir: str | Path | None
+) -> str:
+    """生成された画像パスと設定された出力ディレクトリから、ページ基準で参照する相対部分を構築する。"""
+    image_path_obj = Path(image_path)
+    image_path_posix = PurePosixPath(str(image_path_obj).replace("\\", "/"))
+    output_dir_str = str(output_dir) if output_dir else "assets/images"
+    output_dir_posix = PurePosixPath(output_dir_str.replace("\\", "/"))
+
+    output_dir_parts = tuple(
+        part for part in output_dir_posix.parts if part not in ("", ".")
+    )
+    image_parts = tuple(
+        part for part in image_path_posix.parts if part not in ("", ".")
+    )
+
+    if output_dir_parts:
+        match_length = len(output_dir_parts)
+        for idx in range(len(image_parts) - match_length, -1, -1):
+            if image_parts[idx : idx + match_length] == output_dir_parts:
+                return "/".join(image_parts[idx:])
+
+        return "/".join((*output_dir_parts, image_path_obj.name))
+
+    if image_parts:
+        return "/".join(image_parts)
+
+    return image_path_obj.name

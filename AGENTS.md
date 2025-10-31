@@ -7,11 +7,19 @@
   - **t-wada TDD Concept**:
     1. 1st Issue
         1. First, write a failing test (Red).
+            - make test
+            - make check-all
         2. Then, write the simplest code to make it pass (Green).
+            - make test-cov
+            - make check-all
         3. Finally, refactor the code (Refactor).
     2. 2nd Issue
         1. First, write a failing test (Red).
+            - make test
+            - make check-all
         2. Then, write the simplest code to make it pass (Green).
+            - make test-cov
+            - make check-all
         3. Finally, refactor the code (Refactor).
   - Each cycle should be small and focused on a single purpose.
 

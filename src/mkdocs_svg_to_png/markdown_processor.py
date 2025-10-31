@@ -50,6 +50,7 @@ class MarkdownProcessor:
                 page_file,
                 self.config.get("preserve_original", False),
                 page_url,
+                self.config.get("output_dir", "assets/images"),
             )
 
             result = (
@@ -155,6 +156,11 @@ class MarkdownProcessor:
 
             # 先頭が '/' なら（Linux 風の絶対パスとして）そのまま返す
             if original.startswith("/"):
+                resolved_paths.append(original)
+                continue
+
+            # Windows ドライブレター形式 (例: C:/path/to/file.svg) はそのまま返す
+            if re.match(r"^[A-Za-z]:/", original):
                 resolved_paths.append(original)
                 continue
 
