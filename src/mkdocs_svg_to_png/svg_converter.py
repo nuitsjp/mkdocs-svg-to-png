@@ -98,13 +98,16 @@ class SvgToPngConverter:
             return False
 
         try:
-            # Read SVG content and convert
             svg_content = svg_file.read_text(encoding="utf-8")
-            return self.convert_svg_content(svg_content, output_path)
+        except Exception as error:
+            return self._handle_conversion_error(error, output_path, "", svg_path)
 
-        except Exception as e:
-            svg_content = svg_file.read_text(encoding="utf-8")
-            return self._handle_conversion_error(e, output_path, svg_content, svg_path)
+        try:
+            return self.convert_svg_content(svg_content, output_path)
+        except Exception as error:
+            return self._handle_conversion_error(
+                error, output_path, svg_content, svg_path
+            )
 
     def _validate_svg_content(self, svg_content: str) -> None:
         """Validate that content is valid SVG.

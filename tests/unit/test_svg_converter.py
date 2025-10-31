@@ -76,6 +76,27 @@ class TestSvgToPngConverter:
             "<svg width='100' height='100'><rect/></svg>", output_path
         )
 
+    @patch("mkdocs_svg_to_png.svg_converter.Path")
+    def test_convert_svg_file_read_failure_returns_false_without_retry(
+        self, mock_path, svg_config
+    ):
+        """Read failure should be handled once without retrying the file read."""
+        converter = SvgToPngConverter({**svg_config, "error_on_fail": False})
+
+        svg_path = "/tmp/inaccessible.svg"
+        output_path = "/tmp/out.png"
+
+        mock_svg_path = Mock()
+        mock_svg_path.exists.return_value = True
+        mock_svg_path.read_text.side_effect = PermissionError("denied")
+
+        mock_path.return_value = mock_svg_path
+
+        result = converter.convert_svg_file(svg_path, output_path)
+
+        assert result is False
+        assert mock_svg_path.read_text.call_count == 1
+
     def test_convert_svg_content_playwright_error(self):
         """Test Playwright error handling."""
         config = {
