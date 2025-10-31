@@ -1,6 +1,4 @@
- - [x] `SvgBlock.get_image_markdown` を更新して、ハードコードされた `assets/images` セグメントの代わりに、実際の `image_path` と設定された `output_dir` から相対画像リンクを導出するようにする (`src/mkdocs_svg_to_png/svg_block.py:84`)。理由: カスタム出力ディレクトリは現在、壊れた画像リンクを生成する。
- - [x] `MarkdownProcessor.resolve_svg_file_paths_from_page` を拡張して、Windows のドライブレター絶対パスを認識できるようにし、MkDocs docs ディレクトリをプレフィックスとして付けないようにする (`src/mkdocs_svg_to_png/markdown_processor.py:154-167`)。理由: Windows の絶対パスが誤って正規化されて、無効な `docs_dir/C:/...` ターゲットになる。
- - [x] `SvgToPngConverter.convert_svg_file` のエラー処理を調整して、例外ブロック内で失敗をガードせずに SVG ファイルを再読み込みしないようにする (`src/mkdocs_svg_to_png/svg_converter.py:105-107`)。理由: 読み取り失敗(例: パーミッション/エンコーディング)が現在、二次的な例外をトリガーし、`_handle_conversion_error` をスキップする。
- - [x] `SvgToPngConverter` での Playwright のインポートを、モジュールインポート時に発生させるのではなく、変換時まで延期する(または適切なフォールバックを追加する) (`src/mkdocs_svg_to_png/svg_converter.py:10-16`)。理由: Playwright がインストールされていない状態でプラグインをインポートするだけで失敗し、無関係なツール/テストが不可能になる。
- - [x] Playwright 依存のユニットテストを、実際のブラウザ作業を実行するのではなく、`_run_playwright_conversion` をモックする(またはスキップするようマークする)ように作り直す (`tests/unit/test_svg_converter.py`、`tests/unit/test_processor.py`)。理由: 現在のスイートは Playwright + ブラウザバイナリを必要とするため、CI で脆弱で遅い。
- - [x] `src/mkdocs_svg_to_png/__init__.py:1` のハードコードされたリテラルの代わりに、`_version.py` から `__version__` をソースとして、パッケージバージョンの公開を整合させる。理由: 公開バージョン文字列が setuptools-scm で生成されたバージョンと一致しない。
+ - [ ] (優先度: 高) `SvgProcessor._process_svg_blocks` の戻り値を専用データ構造に整理し、ブロック結果と画像パスを並列リストで渡す現在のメッセージパッシングを解消する。背景: 成功ブロックとパスを別々に返す設計は順序依存の結合を生み、責務の境界が曖昧になっている。目的: 単一オブジェクトで結果を共有し、処理責務とデータ受け渡しを明確化する。
+ - [ ] (優先度: 中) `SvgBlock.generate_png` のシグネチャから未使用の `config` 引数を排除するか、必要な情報を利用するよう責務を定義し直す。背景: 使われない依存を受け渡しており、ブロックとコンバーター間の契約が曖昧。目的: インターフェースを最小化して役割を明確にし、不要な結合を除去する。
+ - [ ] (優先度: 中) `SvgProcessor` に残された未使用エラーハンドラ（`_log_generation_failure` など）を統合または削除して、例外処理の責務を整理する。背景: 未使用メソッドが存在することで実際のエラー経路が把握しづらく、責務が分散しているように見える。目的: 実際に利用されるエラーハンドリングのみを保持し、保守性と理解しやすさを高める。
+ - [ ] (優先度: 低) `MarkdownProcessor.replace_blocks_with_images` で受け取る `page_url` を実際に利用するか、呼び出し元からのメッセージを整理する。背景: 未使用パラメータが残っており、データ受け渡しの目的が不透明。目的: 実際に必要な情報だけをやり取りし、処理フローの意図を明確にする。
