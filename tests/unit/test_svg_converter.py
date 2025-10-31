@@ -94,6 +94,27 @@ class TestSvgToPngConverter:
             "<svg width='100' height='100'><rect/></svg>", output_path
         )
 
+    def test_convert_svg_content_with_injected_runner(
+        self, svg_config, mock_playwright_conversion
+    ):
+        """注入ランナーでPlaywright処理をバイパスできるかテスト (TDD RED)"""
+        calls: list[tuple[str, str]] = []
+
+        def fake_runner(svg: str, output: str) -> bool:
+            calls.append((svg, output))
+            return True
+
+        converter = SvgToPngConverter(svg_config, runner=fake_runner)
+
+        svg_content = "<svg width='10' height='10'></svg>"
+        output_path = "/tmp/from-runner.png"
+
+        result = converter.convert_svg_content(svg_content, output_path)
+
+        assert result is True
+        assert calls == [(svg_content, output_path)]
+        assert mock_playwright_conversion.called is False
+
     def test_import_svg_converter_without_playwright(self):
         """SvgToPngConverter module should import even if Playwright is absent."""
         import importlib

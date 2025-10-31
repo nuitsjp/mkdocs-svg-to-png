@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import re
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 try:
     import defusedxml.ElementTree as ET
@@ -21,15 +21,24 @@ from .utils import ensure_directory
 class SvgToPngConverter:
     """Playwright を経由して SVG コンテンツを PNG へ変換するユーティリティ。"""
 
-    def __init__(self, config: dict[str, Any]) -> None:
+    def __init__(
+        self,
+        config: dict[str, Any],
+        runner: Callable[[str, str], bool] | None = None,
+    ) -> None:
         """変換に関する設定を受け取り、ロガーと Playwright 実行環境を準備する。
 
         引数:
             config: 変換動作を制御する設定ディクショナリ
+            runner: SVG→PNG 変換を実行する呼び出し可能オブジェクト
+                （テスト用に差し替え可）
         """
         self.config = config
         self.logger = get_logger(__name__)
         self._async_playwright: Any | None = None
+        self._conversion_runner: Callable[[str, str], bool] = (
+            runner or self._run_playwright_conversion
+        )
 
     def convert_svg_content(self, svg_content: str, output_path: str) -> bool:
         """SVG 文字列を受け取り PNG ファイルとして出力する。
@@ -50,8 +59,8 @@ class SvgToPngConverter:
             # 出力先ディレクトリを事前に作成する
             ensure_directory(str(Path(output_path).parent))
 
-            # Playwright を介して SVG→PNG へ変換する
-            success = self._run_playwright_conversion(svg_content, output_path)
+            # Playwright を介した実変換（テストでは差し替え可能）
+            success = self._conversion_runner(svg_content, output_path)
 
             if success:
                 self.logger.debug(f"Generated PNG image: {output_path}")

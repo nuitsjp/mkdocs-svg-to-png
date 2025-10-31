@@ -3,6 +3,7 @@ SvgToPngPluginクラスのテスト
 このファイルでは、プラグイン本体の動作を検証します。
 """
 
+import logging
 from unittest.mock import Mock, patch
 
 import pytest
@@ -63,6 +64,38 @@ class TestSvgToPngPlugin:
             assert result == mock_config
             assert plugin.processor is not None
 
+    def test_on_config_detects_serve_mode_from_watch(self, plugin):
+        """watch設定がある場合に配信モードと判断するかテスト (TDD RED)"""
+        plugin.config = {
+            "enabled": True,
+            "output_dir": "assets/images",
+            "error_on_fail": False,
+            "log_level": "INFO",
+        }
+        mkdocs_config = {
+            "docs_dir": "/tmp/docs",
+            "site_dir": "/tmp/site",
+            "watch": {"docs", "mkdocs.yml"},
+        }
+
+        with (
+            patch("mkdocs_svg_to_png.plugin.SvgProcessor") as mock_processor,
+            patch("mkdocs_svg_to_png.plugin.setup_plugin_logging"),
+        ):
+            mock_processor.return_value = Mock()
+            plugin.on_config(mkdocs_config)
+
+        assert plugin.is_serve_mode is True
+
+    def test_on_serve_sets_serve_mode_flag(self, plugin):
+        """on_serve呼び出し時に配信モードフラグが立つかテスト (TDD RED)"""
+        plugin.is_serve_mode = False
+        server = Mock()
+
+        plugin.on_serve(server, config={}, builder=Mock())
+
+        assert plugin.is_serve_mode is True
+
     def test_config_validation_disabled_plugin(self, plugin, mock_config):
         """プラグインが無効な場合にprocessorがNoneになるかテスト"""
         plugin.config = {
@@ -79,6 +112,31 @@ class TestSvgToPngPlugin:
             result = plugin.on_config(mock_config)
             assert result == mock_config
             assert plugin.processor is None
+
+    def test_on_config_forces_debug_when_root_logger_debug(self, plugin, mock_config):
+        """ルートロガーがDEBUGのときlog_levelがDEBUGに強制されるかテスト (TDD RED)"""
+        plugin.config = {
+            "enabled": True,
+            "output_dir": "assets/images",
+            "error_on_fail": False,
+            "log_level": "INFO",
+        }
+
+        root_logger = logging.getLogger()
+        previous_level = root_logger.level
+        root_logger.setLevel(logging.DEBUG)
+
+        try:
+            with (
+                patch("mkdocs_svg_to_png.plugin.SvgProcessor") as mock_processor,
+                patch("mkdocs_svg_to_png.plugin.setup_plugin_logging"),
+            ):
+                plugin.on_config(mock_config)
+        finally:
+            root_logger.setLevel(previous_level)
+
+        called_config = mock_processor.call_args.args[0]
+        assert called_config["log_level"] == "DEBUG"
 
     def test_on_files_disabled(self, plugin):
         """プラグイン無効時のon_filesの挙動をテスト"""

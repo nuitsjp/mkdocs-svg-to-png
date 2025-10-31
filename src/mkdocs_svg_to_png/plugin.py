@@ -1,5 +1,5 @@
+import logging
 import os
-import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional
 
@@ -33,8 +33,7 @@ class SvgToPngPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped-call]
         self.files: Optional[Files] = None
         self.logger = get_logger(__name__)
 
-        self.is_serve_mode: bool = "serve" in sys.argv
-        self.is_verbose_mode: bool = "--verbose" in sys.argv or "-v" in sys.argv
+        self.is_serve_mode: bool = False
 
     def _should_be_enabled(self, config: dict[str, Any]) -> bool:
         """環境変数設定に基づいてプラグインが有効化されるべきかどうかを判定"""
@@ -54,8 +53,13 @@ class SvgToPngPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped-call]
             config_dict = dict(self.config)
             SvgConfigManager().validate(config_dict)
 
-            # CLIフラグが指定されている場合は優先、そうでなければ設定値を使用
-            if self.is_verbose_mode:
+            # MkDocs 設定から serve モードを検出（watch 対象があれば配信中と判断）
+            self.is_serve_mode = (
+                self._detect_serve_mode_from_config(config) or self.is_serve_mode
+            )
+
+            # ルートロガーが DEBUG の場合は詳細ログを優先する
+            if self._root_logger_requests_debug():
                 config_dict["log_level"] = "DEBUG"
             # else: config_dictのlog_levelをそのまま使用
 
@@ -260,7 +264,41 @@ class SvgToPngPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped-call]
 
     def on_serve(self, server: Any, *, config: Any, builder: Any) -> Any:
         """`mkdocs serve` 時に特別な処理は行わず、サーバーをそのまま返す。"""
+        self.is_serve_mode = True
         if not self._should_be_enabled(self.config):
             return server
 
         return server
+
+    def _detect_serve_mode_from_config(self, config: Any) -> bool:
+        """MkDocs 設定オブジェクトから配信モードを推定する。"""
+        watch_value = self._config_lookup(config, "watch")
+        return bool(watch_value)
+
+    def _root_logger_requests_debug(self) -> bool:
+        """ルートロガーの設定からデバッグログ要求を検出する。"""
+        root_logger = logging.getLogger()
+        effective_level = root_logger.getEffectiveLevel()
+        if effective_level == logging.NOTSET:
+            # NOTSET は親ロガー依存のため明示的な要求とみなさない
+            return False
+        return effective_level <= logging.DEBUG
+
+    def _config_lookup(self, config: Any, key: str, default: Any = None) -> Any:
+        """MkDocsConfig 互換オブジェクトから値を取得するヘルパー。"""
+        if isinstance(config, dict):
+            return config.get(key, default)
+
+        try:
+            return config[key]
+        except Exception:  # pragma: no cover - フォールバック
+            getter = getattr(config, "get", None)
+            if callable(getter):
+                try:
+                    return getter(key, default)
+                except TypeError:
+                    try:
+                        return getter(key)
+                    except Exception:  # pragma: no cover - フォールバック
+                        return default
+            return default
