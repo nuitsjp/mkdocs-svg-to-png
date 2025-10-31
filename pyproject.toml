@@ -150,7 +150,15 @@ markers = [
 ]
 
 [tool.uv.sources]
-mkdocs-svg-to-png = { workspace = true }
+mkdocs-svg-to-png = { workspace = true, editable = true }
+
+[tool.uv.workspace]
+members = [
+    ".",
+    ".",
+    ".",
+    ".",
+]
 
 [dependency-groups]
 dev = [
