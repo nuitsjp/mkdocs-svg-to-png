@@ -1,10 +1,15 @@
 # mkdocs-svg-to-png
 
 [![PyPI - Python Version][python-image]][pypi-link]
+[![Linux Support][linux-image]](#requirements)
+[![Windows Support][windows-image]](#requirements)
 
 An MkDocs plugin that converts SVG code blocks and files to PNG images using Playwright during the build process. This plugin is specifically designed to ensure proper SVG rendering in PDF output and offline viewing scenarios.
 
 **Primary use case**: Works seamlessly with [mkdocs-mermaid-to-svg](https://github.com/nuitsjp/mkdocs-mermaid-to-svg) to create a complete local pipeline for Mermaid diagrams → SVG → PNG → PDF generation without external services, ensuring confidentiality for sensitive documentation.
+
+- [Documentation](https://mango-dune-02db2c010.3.azurestaticapps.net/)
+- [DeepWiki](https://deepwiki.com/nuitsjp/mkdocs-svg-to-png)
 
 ## Features
 
