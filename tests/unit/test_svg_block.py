@@ -74,8 +74,7 @@ class TestSvgBlock:
         mock_converter = Mock()
         mock_converter.convert_svg_content.return_value = True
 
-        config = {"dpi": 300, "quality": 95}
-        result = block.generate_png("output.png", mock_converter, config)
+        result = block.generate_png("output.png", mock_converter)
 
         assert result is True
         mock_converter.convert_svg_content.assert_called_once_with(
@@ -91,8 +90,7 @@ class TestSvgBlock:
         mock_converter = Mock()
         mock_converter.convert_svg_file.return_value = True
 
-        config = {"dpi": 150, "quality": 80}
-        result = block.generate_png("output.png", mock_converter, config)
+        result = block.generate_png("output.png", mock_converter)
 
         assert result is True
         mock_converter.convert_svg_file.assert_called_once_with(file_path, "output.png")
@@ -102,12 +100,29 @@ class TestSvgBlock:
         svg_code = "<svg><text>Test</text></svg>"
         block = SvgBlock(code=svg_code, start_pos=0, end_pos=30)
 
-        image_path = "generated/test.png"
+        image_path = "/project/docs/assets/images/test.png"
         page_file = "docs/guide.md"
 
-        markdown = block.get_image_markdown(image_path, page_file)
+        markdown = block.get_image_markdown(
+            image_path, page_file, output_dir="assets/images"
+        )
 
         expected = "![SVG Diagram](../assets/images/test.png)"
+        assert markdown == expected
+
+    def test_get_image_markdown_with_custom_output_dir(self):
+        """カスタム出力ディレクトリ使用時のMarkdown生成テスト"""
+        svg_code = "<svg><text>Custom</text></svg>"
+        block = SvgBlock(code=svg_code, start_pos=0, end_pos=30)
+
+        image_path = "/project/docs/generated/images/custom.png"
+        page_file = "guide/intro.md"
+
+        markdown = block.get_image_markdown(
+            image_path, page_file, output_dir="generated/images"
+        )
+
+        expected = "![SVG Diagram](../generated/images/custom.png)"
         assert markdown == expected
 
     def test_get_image_markdown_with_preserve_original(self):
@@ -116,11 +131,11 @@ class TestSvgBlock:
         attributes = {"width": "200"}
         block = SvgBlock(code=svg_code, start_pos=0, end_pos=20, attributes=attributes)
 
-        image_path = "generated/test.png"
+        image_path = "/workspace/docs/assets/images/test.png"
         page_file = "guide.md"
 
         markdown = block.get_image_markdown(
-            image_path, page_file, preserve_original=True
+            image_path, page_file, preserve_original=True, output_dir="assets/images"
         )
 
         assert "![SVG Diagram](assets/images/test.png)" in markdown

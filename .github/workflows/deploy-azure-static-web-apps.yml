@@ -9,7 +9,7 @@ on:
     branches:
       - main
     paths:
-      - '.github/workflows/azure-static-web-apps-thankful-beach-0f331f600.yml'
+      - '.github/workflows/deploy-azure-static-web-apps.yml'
       - 'docs/**'
       - 'mkdocs.yml'
   pull_request:
@@ -17,7 +17,7 @@ on:
     branches:
       - main
     paths:
-      - '.github/workflows/azure-static-web-apps-thankful-beach-0f331f600.yml'
+      - '.github/workflows/deploy-azure-static-web-apps.yml'
       - 'docs/**'
       - 'mkdocs.yml'
 
@@ -37,17 +37,17 @@ jobs:
           lfs: false
 
       - name: Setup Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v6
         with:
           node-version: '18'
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v1
+        uses: astral-sh/setup-uv@v7
 
       - name: Install Python dependencies
         run: uv sync --all-extras
@@ -75,7 +75,7 @@ jobs:
 
       - name: Upload PDF artifact
         if: github.ref == 'refs/heads/main'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: documentation-pdf
           path: site/*.pdf
@@ -85,7 +85,7 @@ jobs:
         id: builddeploy
         uses: Azure/static-web-apps-deploy@v1
         with:
-          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_THANKFUL_BEACH_0F331F600 }}
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_MANGO_DUNE_02DB2C010 }}
           repo_token: ${{ secrets.GITHUB_TOKEN }} # Used for Github integrations (i.e. PR comments)
           action: "upload"
           app_location: "site"  # MkDocs build output directory
@@ -102,5 +102,5 @@ jobs:
         id: closepullrequest
         uses: Azure/static-web-apps-deploy@v1
         with:
-          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_THANKFUL_BEACH_0F331F600 }}
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_MANGO_DUNE_02DB2C010 }}
           action: "close"

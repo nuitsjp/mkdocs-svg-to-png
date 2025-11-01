@@ -15,6 +15,8 @@ from .types import LogContext
 
 
 class StructuredFormatter(logging.Formatter):
+    """構造化されたキー=値形式でログを出力するフォーマッタ。"""
+
     def __init__(self, include_caller: bool = True) -> None:
         super().__init__()
         self.include_caller = include_caller
@@ -62,13 +64,9 @@ class StructuredFormatter(logging.Formatter):
 
 
 class SimpleFormatter(logging.Formatter):
-    """Simple MkDocs-style log formatter.
+    """MkDocs に合わせたシンプルな整形を行うフォーマッタ。"""
 
-    Formats logs as: "LEVEL   -  message"
-    Similar to MkDocs output format for better daily use experience.
-    """
-
-    # Level name formatting map for consistent alignment
+    # レベル表記の桁揃えを統一するマッピング
     LEVEL_FORMAT_MAP: ClassVar[dict[str, str]] = {
         "INFO": "INFO    ",
         "WARNING": "WARNING ",
@@ -78,18 +76,18 @@ class SimpleFormatter(logging.Formatter):
     }
 
     def format(self, record: logging.LogRecord) -> str:
-        """Format the log record in simple MkDocs style.
+        """MkDocs 風の整形でログメッセージを構築する。
 
-        Args:
-            record: The log record to format
+        引数:
+            record: 整形対象のログレコード
 
-        Returns:
-            Formatted log message string
+        戻り値:
+            整形済みのログ文字列
         """
         level = record.levelname
         message = record.getMessage()
 
-        # Use predefined formatting or fallback to padded level name
+        # 既定の整形か、存在しないレベル名は桁揃えで補正する
         level_str = self.LEVEL_FORMAT_MAP.get(level, f"{level:<8}")
 
         return f"{level_str}-  {message}"
@@ -101,12 +99,12 @@ def setup_plugin_logging(
     log_file: str | Path | None = None,
     force: bool = False,
 ) -> None:
-    """Setup plugin logging with simple format.
+    """プラグイン用のロガーをシンプルな整形で初期化する。
 
-    Args:
-        level: Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-        log_file: Optional log file path
-        force: Force re-setup even if handlers exist
+    引数:
+        level: ログレベル（DEBUG, INFO, WARNING, ERROR, CRITICAL）
+        log_file: ログを出力するファイルパス（省略可）
+        force: 既存ハンドラがあっても再初期化するかどうか
     """
     env_level = os.environ.get("MKDOCS_SVG_TO_PNG_LOG_LEVEL", "").upper()
     if env_level in ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]:
@@ -122,7 +120,7 @@ def setup_plugin_logging(
 
     logger.setLevel(getattr(logging, level.upper()))
 
-    # Always use SimpleFormatter for better daily use experience
+    # 常に SimpleFormatter を使用し、普段使いの出力を統一する
     formatter = SimpleFormatter()
 
     console_handler = logging.StreamHandler(sys.stdout)
@@ -158,7 +156,7 @@ def setup_plugin_logging(
 
         file_handler = handler_cls(log_path, encoding="utf-8")
         file_handler.setLevel(getattr(logging, level.upper()))
-        # Use same simple formatter for file handler
+        # ファイル出力もコンソールと同じ整形に揃える
         file_handler.setFormatter(formatter)
         logger.addHandler(file_handler)
         logger.log(getattr(logging, level.upper()), "Log file initialized")
@@ -169,11 +167,14 @@ def setup_plugin_logging(
 def get_plugin_logger(
     name: str, **context: Any
 ) -> logging.Logger | logging.LoggerAdapter[logging.Logger]:
+    """プラグイン固有のコンテキスト情報を付加するロガーを取得する。"""
     logger = logging.getLogger(name)
 
     if context:
 
         class ContextAdapter(logging.LoggerAdapter[logging.Logger]):
+            """追加コンテキストを `extra` に統合するアダプタ。"""
+
             def process(
                 self, msg: str, kwargs: MutableMapping[str, Any]
             ) -> tuple[str, MutableMapping[str, Any]]:
@@ -192,6 +193,7 @@ def get_plugin_logger(
 def log_with_context(
     logger: logging.Logger, level: str, message: str, **context: Any
 ) -> None:
+    """レベルを文字列で指定し、追加コンテキスト付きでログ出力する。"""
     log_method = getattr(logger, level.lower())
     log_method(message, extra={"context": context})
 
@@ -200,6 +202,7 @@ def create_processing_context(
     page_file: str | None = None,
     block_index: int | None = None,
 ) -> LogContext:
+    """Markdown ページ処理時の位置情報を含むコンテキストを生成する。"""
     return LogContext(page_file=page_file, block_index=block_index)
 
 
@@ -207,6 +210,7 @@ def create_error_context(
     error_type: str | None = None,
     processing_step: str | None = None,
 ) -> LogContext:
+    """エラー種別とステップ名を含むログコンテキストを生成する。"""
     return LogContext(error_type=error_type, processing_step=processing_step)
 
 
@@ -214,6 +218,7 @@ def create_performance_context(
     execution_time_ms: float | None = None,
     image_format: str | None = None,
 ) -> LogContext:
+    """処理時間などの性能指標を記録するコンテキストを生成する。"""
     context: LogContext = {"execution_time_ms": execution_time_ms}
     if image_format is not None and image_format in ("png", "svg"):
         context["image_format"] = image_format  # type: ignore[typeddict-item]
@@ -224,13 +229,13 @@ def create_performance_context(
 
 
 def get_logger(name: str) -> logging.Logger:
-    """統一ロガーファクトリー - 全モジュールが使用する標準ロガー取得関数
+    """全モジュール共通で利用するロガーを取得するファクトリ関数。
 
-    Args:
-        name: ロガー名（通常は__name__を使用）
+    引数:
+        name: ロガー名（通常は __name__ を渡す）
 
-    Returns:
-        設定済みのロガーインスタンス
+    戻り値:
+        設定済みロガーのインスタンス
     """
     # プラグインロギングがセットアップされていない場合は初期化
     root_logger = logging.getLogger("mkdocs_svg_to_png")
@@ -241,9 +246,11 @@ def get_logger(name: str) -> logging.Logger:
 
 
 def shutdown_logging() -> None:
-    """Flush & close all handlers (mainly for tests on Windows)."""
+    """全ハンドラを flush/close し、特に Windows テスト時のロックを避ける。"""
     root_logger = logging.getLogger("mkdocs_svg_to_png")
-    for h in list(root_logger.handlers):  # copy list
+    for h in list(
+        root_logger.handlers
+    ):  # リストをコピーしてイテレーション中の変更を防ぐ
         with contextlib.suppress(Exception):
             h.flush()
         with contextlib.suppress(Exception):

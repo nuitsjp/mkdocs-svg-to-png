@@ -64,12 +64,12 @@ jobs:
           fetch-depth: 0
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.12"
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
           cache-dependency-glob: "uv.lock"
@@ -83,7 +83,7 @@ jobs:
       - name: Get version
         id: version
         run: |
-          VERSION=$(uv run python -c "import mkdocs_mermaid_to_image; print(mkdocs_mermaid_to_image.__version__)")
+          VERSION=$(uv run python -c "import mkdocs_svg_to_png; print(mkdocs_svg_to_png.__version__)")
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Package version: $VERSION"
 
@@ -131,9 +131,9 @@ jobs:
           echo "- **Release Type**: ${{ needs.determine-release-type.outputs.release-type }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Version**: ${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
           if [[ "${{ needs.determine-release-type.outputs.is-production }}" == "true" ]]; then
-            echo "- **PyPI**: https://pypi.org/project/mkdocs-mermaid-to-svg/${{ steps.version.outputs.version }}/" >> $GITHUB_STEP_SUMMARY
+            echo "- **PyPI**: https://pypi.org/project/mkdocs-svg-to-png/${{ steps.version.outputs.version }}/" >> $GITHUB_STEP_SUMMARY
             echo "- **GitHub Release**: ${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
           else
-            echo "- **TestPyPI**: https://test.pypi.org/project/mkdocs-mermaid-to-svg/${{ steps.version.outputs.version }}/" >> $GITHUB_STEP_SUMMARY
-            echo "- **Installation**: \`pip install --index-url https://test.pypi.org/simple/ mkdocs-mermaid-to-svg==${{ steps.version.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
+            echo "- **TestPyPI**: https://test.pypi.org/project/mkdocs-svg-to-png/${{ steps.version.outputs.version }}/" >> $GITHUB_STEP_SUMMARY
+            echo "- **Installation**: \`pip install --index-url https://test.pypi.org/simple/ mkdocs-svg-to-png==${{ steps.version.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
           fi
