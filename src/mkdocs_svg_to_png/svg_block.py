@@ -1,17 +1,17 @@
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 from .utils import generate_image_filename
 
 
 def _calculate_relative_path_prefix(page_file: str) -> str:
-    """ページファイルパスから適切な相対パスプレフィックスを計算する
+    """ページファイルパスから適切な相対パスプレフィックスを計算する。
 
-    Args:
+    引数:
         page_file: ページファイルのパス（例: "appendix/mkdocs-architecture.md"）
 
-    Returns:
-        相対パスプレフィックス（例: "../" or "../../../"）
+    戻り値:
+        相対パスプレフィックス（例: "../" や "../../../"）
     """
     if not page_file:
         return ""
@@ -29,6 +29,8 @@ def _calculate_relative_path_prefix(page_file: str) -> str:
 
 
 class SvgBlock:
+    """Markdown から抽出した SVG ブロックを表現し、変換ユーティリティを提供する。"""
+
     def __init__(
         self,
         code: str = "",
@@ -37,6 +39,7 @@ class SvgBlock:
         end_pos: int = 0,
         attributes: dict[str, Any] | None = None,
     ):
+        """ブロック内容と位置情報、付与属性を保持する。"""
         self.code = code.strip()
         self.file_path = file_path
         self.start_pos = start_pos
@@ -55,10 +58,8 @@ class SvgBlock:
                 f"start={self.start_pos}, end={self.end_pos})"
             )
 
-    def generate_png(
-        self, output_path: str, svg_converter: Any, config: dict[str, Any]
-    ) -> bool:
-        """SVGからPNG画像を生成する"""
+    def generate_png(self, output_path: str, svg_converter: Any) -> bool:
+        """保持している SVG 情報から PNG 変換を実行する。"""
         if self.file_path:
             # SVGファイルから変換
             result = svg_converter.convert_svg_file(self.file_path, output_path)
@@ -72,16 +73,16 @@ class SvgBlock:
         image_path: str,
         page_file: str,
         preserve_original: bool = False,
-        page_url: str = "",
+        output_dir: str | Path | None = None,
     ) -> str:
-        """画像のMarkdownを生成する"""
-        image_path_obj = Path(image_path)
+        """変換結果の PNG を指す Markdown 記法を生成する。"""
+        relative_image_subpath = _build_relative_image_subpath(image_path, output_dir)
 
         # 相対パスプレフィックスを計算
         relative_prefix = _calculate_relative_path_prefix(page_file)
 
         # 相対パス付きで画像パスを構築
-        relative_image_path = f"{relative_prefix}assets/images/{image_path_obj.name}"
+        relative_image_path = f"{relative_prefix}{relative_image_subpath}"
 
         image_markdown = f"![SVG Diagram]({relative_image_path})"
 
@@ -106,6 +107,36 @@ class SvgBlock:
         return image_markdown
 
     def get_filename(self, page_file: str, index: int, image_format: str) -> str:
-        """画像ファイル名を生成する"""
+        """ページ情報とブロック内容を基に安定した画像ファイル名を生成する。"""
         content = self.file_path if self.file_path else self.code
         return generate_image_filename(page_file, index, content, image_format)
+
+
+def _build_relative_image_subpath(
+    image_path: str, output_dir: str | Path | None
+) -> str:
+    """生成画像と出力ディレクトリから、ページ基準の相対参照パスを組み立てる。"""
+    image_path_obj = Path(image_path)
+    image_path_posix = PurePosixPath(str(image_path_obj).replace("\\", "/"))
+    output_dir_str = str(output_dir) if output_dir else "assets/images"
+    output_dir_posix = PurePosixPath(output_dir_str.replace("\\", "/"))
+
+    output_dir_parts = tuple(
+        part for part in output_dir_posix.parts if part not in ("", ".")
+    )
+    image_parts = tuple(
+        part for part in image_path_posix.parts if part not in ("", ".")
+    )
+
+    if output_dir_parts:
+        match_length = len(output_dir_parts)
+        for idx in range(len(image_parts) - match_length, -1, -1):
+            if image_parts[idx : idx + match_length] == output_dir_parts:
+                return "/".join(image_parts[idx:])
+
+        return "/".join((*output_dir_parts, image_path_obj.name))
+
+    if image_parts:
+        return "/".join(image_parts)
+
+    return image_path_obj.name

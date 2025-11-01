@@ -8,13 +8,18 @@ from .svg_block import SvgBlock
 
 
 class MarkdownProcessor:
+    """Markdown 内の SVG コードやファイル参照を処理するコンバーター。"""
+
     def __init__(self, config: dict[str, Any]) -> None:
+        """プラグイン設定を受け取り、ロガーを初期化する。"""
         self.config = config
         self.logger = get_logger(__name__)
 
     def _parse_attributes(self, attr_str: str) -> dict[str, Any]:
+        """SVG コードブロックに付与された属性文字列を辞書へ変換する。"""
         attributes = {}
         if attr_str:
+            # カンマ区切りの key:value を順に取り出し正規化する
             for attr in attr_str.split(","):
                 if ":" in attr:
                     key, value = attr.split(":", 1)
@@ -29,15 +34,17 @@ class MarkdownProcessor:
         blocks: list[SvgBlock],
         image_paths: list[str],
         page_file: str,
-        page_url: str = "",
     ) -> str:
+        """検出した SVG ブロックを対応する画像マークダウンに差し替える。"""
         if len(blocks) != len(image_paths):
+            # 画像生成結果とブロック数が合わない場合はパース失敗として扱う
             raise SvgParsingError(
                 "Number of blocks and image paths must match",
                 source_file=page_file,
                 svg_content=f"Expected {len(blocks)} images, got {len(image_paths)}",
             )
 
+        # 後方から置換するため開始位置の降順で並び替える
         sorted_blocks = sorted(
             zip(blocks, image_paths), key=lambda x: x[0].start_pos, reverse=True
         )
@@ -45,11 +52,12 @@ class MarkdownProcessor:
         result = markdown_content
 
         for block, image_path in sorted_blocks:
+            # 各ブロックを変換ポリシーに従って画像マークダウンへ変形する
             image_markdown = block.get_image_markdown(
                 image_path,
                 page_file,
                 self.config.get("preserve_original", False),
-                page_url,
+                self.config.get("output_dir", "assets/images"),
             )
 
             result = (
@@ -99,6 +107,7 @@ class MarkdownProcessor:
                 match.start() >= block.start_pos and match.end() <= block.end_pos
                 for block in blocks
             )
+            # 属性付き解析で既に取り込まれた領域はスキップする
             if not overlaps:
                 code = match.group(1).strip()
                 block = SvgBlock(
@@ -130,7 +139,7 @@ class MarkdownProcessor:
                 if file_path.is_absolute():
                     resolved_paths.append(str(file_path))
                 else:
-                    # 相対パスを絶対パスに変換
+                    # 相対パスをプロジェクト基準の絶対パスへ変換する
                     resolved_path = base_path_obj / file_path
                     resolved_paths.append(str(resolved_path.resolve()))
 
@@ -155,6 +164,11 @@ class MarkdownProcessor:
 
             # 先頭が '/' なら（Linux 風の絶対パスとして）そのまま返す
             if original.startswith("/"):
+                resolved_paths.append(original)
+                continue
+
+            # Windows ドライブレター形式 (例: C:/path/to/file.svg) はそのまま返す
+            if re.match(r"^[A-Za-z]:/", original):
                 resolved_paths.append(original)
                 continue
 

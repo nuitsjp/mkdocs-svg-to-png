@@ -104,23 +104,28 @@ main() {
     # SNAP packages: Modern tools with latest versions
     command -v nvm &> /dev/null || {
         curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/master/install.sh | bash
-        export NVM_DIR="$HOME/.nvm"
-        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
-        [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
     }
 
+    # Load nvm for current session (temporarily disable -u for nvm)
+    set +u
+    export NVM_DIR="$HOME/.nvm"
+    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+    [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+
     nvm install --lts
+    nvm use --lts
+    set -u
 
     # AI Agent
-    sudo npm install -g @anthropic-ai/claude-code@latest
-    sudo npm install -g @google/gemini-cli@latest
+    npm install -g @anthropic-ai/claude-code@latest
+    npm install -g @google/gemini-cli@latest
 
     # Setup pre-commit
     uv run pre-commit install
     uv run pre-commit install --hook-type commit-msg
 
     # Mermaid CLI local setup (project-specific)
-    sudo npm install -g @mermaid-js/mermaid-cli
+    npm install -g @mermaid-js/mermaid-cli
 
     # Playwright setup for SVG to PNG conversion
     print_step "Installing Playwright and browsers..."

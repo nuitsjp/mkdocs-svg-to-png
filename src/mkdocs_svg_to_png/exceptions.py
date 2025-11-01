@@ -4,16 +4,18 @@ from typing import Any
 
 
 class SvgPreprocessorError(Exception):
-    def __init__(self, message: str, **context_params: Any) -> None:
-        """Initialize the exception with a message and optional context parameters.
+    """SVG 事前処理で発生する例外の基底クラス。"""
 
-        Args:
-            message: Human-readable error message
-            **context_params: Arbitrary context parameters for error details
+    def __init__(self, message: str, **context_params: Any) -> None:
+        """エラーメッセージと任意の文脈情報を受け取って初期化する。
+
+        引数:
+            message: 開発者向けの説明文
+            **context_params: エラーの補足情報となる任意パラメータ
         """
         details = {k: v for k, v in context_params.items() if v is not None}
 
-        # Truncate long SVG content for readability
+        # 可読性のため長いSVG内容は200文字で切り詰める
         for key in ["svg_content", "svg_code"]:
             if (
                 key in details
@@ -27,6 +29,8 @@ class SvgPreprocessorError(Exception):
 
 
 class SvgConfigError(SvgPreprocessorError):
+    """設定値の不備を表す例外。"""
+
     def __init__(
         self,
         message: str,
@@ -34,13 +38,13 @@ class SvgConfigError(SvgPreprocessorError):
         config_value: str | int | None = None,
         suggestion: str | None = None,
     ) -> None:
-        """Initialize configuration error with context.
+        """設定エラーの内容と関連情報を保持する。
 
-        Args:
-            message: Human-readable error message
-            config_key: The configuration key that caused the error
-            config_value: The invalid configuration value
-            suggestion: Suggested fix for the configuration error
+        引数:
+            message: エラー内容の説明
+            config_key: 問題となった設定キー
+            config_value: 不正と判断された値
+            suggestion: 推奨される修正方法
         """
         super().__init__(
             message,
@@ -51,6 +55,8 @@ class SvgConfigError(SvgPreprocessorError):
 
 
 class SvgConversionError(SvgPreprocessorError):
+    """SVG→PNG 変換フェーズでの失敗を表す例外。"""
+
     def __init__(
         self,
         message: str,
@@ -59,14 +65,14 @@ class SvgConversionError(SvgPreprocessorError):
         svg_content: str | None = None,
         cairo_error: str | None = None,
     ) -> None:
-        """Initialize SVG conversion error with context.
+        """変換処理の失敗に関する情報を保持する。
 
-        Args:
-            message: Human-readable error message
-            svg_path: Path to the SVG file being converted
-            output_path: Target output path for PNG
-            svg_content: SVG content that failed to convert
-            cairo_error: CairoSVG specific error message
+        引数:
+            message: エラー内容の説明
+            svg_path: 変換対象のSVGファイルパス
+            output_path: 出力予定のPNGパス
+            svg_content: 変換に失敗したSVG内容
+            cairo_error: CairoSVG 由来の詳細メッセージ
         """
         super().__init__(
             message,
@@ -78,6 +84,8 @@ class SvgConversionError(SvgPreprocessorError):
 
 
 class SvgFileError(SvgPreprocessorError):
+    """ファイル操作関連の異常を表す例外。"""
+
     def __init__(
         self,
         message: str,
@@ -85,13 +93,13 @@ class SvgFileError(SvgPreprocessorError):
         operation: str | None = None,
         suggestion: str | None = None,
     ) -> None:
-        """Initialize file operation error with context.
+        """ファイル操作で失敗した際の情報を保持する。
 
-        Args:
-            message: Human-readable error message
-            file_path: Path to the file that caused the error
-            operation: The file operation that failed (read, write, create, etc.)
-            suggestion: Suggested fix for the file error
+        引数:
+            message: エラー内容の説明
+            file_path: 問題が発生したファイルパス
+            operation: 失敗した操作種別（読込、書込など）
+            suggestion: 推奨される修正方法
         """
         super().__init__(
             message, file_path=file_path, operation=operation, suggestion=suggestion
@@ -99,6 +107,8 @@ class SvgFileError(SvgPreprocessorError):
 
 
 class SvgParsingError(SvgPreprocessorError):
+    """SVG の構文解析時に発生する例外。"""
+
     def __init__(
         self,
         message: str,
@@ -106,13 +116,13 @@ class SvgParsingError(SvgPreprocessorError):
         line_number: int | None = None,
         svg_content: str | None = None,
     ) -> None:
-        """Initialize parsing error with source context.
+        """パースエラーの発生箇所と内容を保持する。
 
-        Args:
-            message: Human-readable error message
-            source_file: The file where the parsing error occurred
-            line_number: Line number where the error was found
-            svg_content: The problematic SVG content
+        引数:
+            message: エラー内容の説明
+            source_file: エラーが発生したソースファイル
+            line_number: 問題の行番号
+            svg_content: 問題を引き起こしたSVG内容
         """
         super().__init__(
             message,
@@ -123,6 +133,8 @@ class SvgParsingError(SvgPreprocessorError):
 
 
 class SvgValidationError(SvgPreprocessorError):
+    """値の妥当性検証で異常を検出した際の例外。"""
+
     def __init__(
         self,
         message: str,
@@ -130,13 +142,13 @@ class SvgValidationError(SvgPreprocessorError):
         invalid_value: str | None = None,
         expected_format: str | None = None,
     ) -> None:
-        """Initialize validation error with context.
+        """検証失敗の詳細情報を保持する。
 
-        Args:
-            message: Human-readable error message
-            validation_type: Type of validation that failed
-            invalid_value: The value that failed validation
-            expected_format: Expected format or pattern
+        引数:
+            message: エラー内容の説明
+            validation_type: 失敗した検証の種類
+            invalid_value: 不正と判断された値
+            expected_format: 期待される形式やパターン
         """
         super().__init__(
             message,
@@ -147,6 +159,8 @@ class SvgValidationError(SvgPreprocessorError):
 
 
 class SvgImageError(SvgPreprocessorError):
+    """画像生成や取り扱いに起因する例外。"""
+
     def __init__(
         self,
         message: str,
@@ -155,14 +169,14 @@ class SvgImageError(SvgPreprocessorError):
         svg_content: str | None = None,
         suggestion: str | None = None,
     ) -> None:
-        """Initialize image generation error with context.
+        """画像関連の失敗に伴う情報を保持する。
 
-        Args:
-            message: Human-readable error message
-            image_format: Target image format (png, svg, etc.)
-            image_path: Path where image should be generated
-            svg_content: SVG diagram content that failed to render
-            suggestion: Suggested fix for the image generation error
+        引数:
+            message: エラー内容の説明
+            image_format: 対象となる画像フォーマット
+            image_path: 生成または参照しようとしたパス
+            svg_content: レンダリングに失敗したSVG内容
+            suggestion: 推奨される修正方法
         """
         super().__init__(
             message,

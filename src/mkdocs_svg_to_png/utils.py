@@ -1,3 +1,5 @@
+"""SVG 変換補助のファイル操作やユーティリティ関数群。"""
+
 import hashlib
 import logging
 import os
@@ -10,6 +12,7 @@ from .logging_config import get_logger
 def generate_image_filename(
     page_file: str, block_index: int, svg_content: str, image_format: str
 ) -> str:
+    """ページ情報と SVG 内容から PNG ファイル名を決定する。"""
     page_name = Path(page_file).stem
 
     code_hash = hashlib.md5(
@@ -26,10 +29,12 @@ def generate_image_filename(
 
 
 def ensure_directory(directory: str) -> None:
+    """ディレクトリが存在しない場合に再帰的に作成する。"""
     Path(directory).mkdir(parents=True, exist_ok=True)
 
 
 def get_temp_file_path(suffix: str = ".svg") -> str:
+    """指定された拡張子を持つ一時ファイルパスを生成する。"""
     fd, path = tempfile.mkstemp(suffix=suffix)
 
     os.close(fd)
@@ -38,7 +43,7 @@ def get_temp_file_path(suffix: str = ".svg") -> str:
 
 
 def _get_cleanup_suggestion(error_type: str) -> str:
-    """Get contextual suggestion based on error type."""
+    """エラー種別ごとに適切な対処ヒントを返す。"""
     if error_type == "PermissionError":
         return "Check file permissions or run with privileges"
     elif error_type == "OSError":
@@ -52,17 +57,17 @@ def clean_file_with_error_handling(
     logger: logging.Logger | None = None,
     operation_type: str = "cleanup",
 ) -> tuple[bool, bool]:
-    """ファイル削除の共通処理（エラーハンドリング付き）
+    """ファイル削除の共通処理（エラーハンドリング付き）。
 
-    Args:
+    引数:
         file_path: 削除するファイルのパス
-        logger: ロガーインスタンス（Noneの場合はログ出力なし）
+        logger: ロガーインスタンス（None の場合はログ出力なし）
         operation_type: 操作の種類（ログ出力用）
 
-    Returns:
-        Tuple of (success, had_error) where:
-        - success: True if file was successfully deleted
-        - had_error: True if there was an actual error (not just non-existence)
+    戻り値:
+        (success, had_error) のタプル。
+        - success: 削除が成功した場合 True
+        - had_error: ファイル非存在以外のエラーが発生した場合 True
     """
     if not file_path:
         return False, False
@@ -75,7 +80,7 @@ def clean_file_with_error_handling(
             if logger:
                 logger.debug(f"Successfully cleaned file: {file_path}")
             return True, False
-        return False, False  # File doesn't exist, not an error
+        return False, False  # ファイルが存在しない場合は異常とみなさない
     except (PermissionError, OSError) as e:
         error_type = type(e).__name__
         if logger:
@@ -95,12 +100,13 @@ def clean_file_with_error_handling(
 
 
 def clean_temp_file(file_path: str) -> None:
-    """一時ファイルをクリーンアップする"""
+    """一時ファイルをクリーンアップする。"""
     logger = get_logger(__name__)
     clean_file_with_error_handling(file_path, logger, "temp_cleanup")
 
 
 def get_relative_path(file_path: str, base_path: str) -> str:
+    """基準パスからの相対パスを計算し、POSIX 形式に揃える。"""
     if not file_path or not base_path:
         return file_path
 
@@ -130,7 +136,7 @@ def get_relative_path(file_path: str, base_path: str) -> str:
 def clean_generated_images(
     image_paths: list[str], logger: logging.Logger | None
 ) -> None:
-    """生成された画像ファイルをクリーンアップする"""
+    """生成された画像ファイルをクリーンアップする。"""
     if not image_paths:
         return
 

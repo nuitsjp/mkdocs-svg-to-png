@@ -151,7 +151,7 @@ More content."""
         assert "![SVG Diagram](assets/images/test.png)" in result
         assert "```svg" not in result
         mock_block.get_image_markdown.assert_called_once_with(
-            "/path/to/test.png", "test.md", False, ""
+            "/path/to/test.png", "test.md", False, "assets/images"
         )
 
     def test_replace_blocks_with_images_preserve_original(self, svg_config):
@@ -179,7 +179,7 @@ More content."""
         assert "![SVG Diagram](test.png)" in result
         assert "```svg" in result  # Original preserved
         mock_block.get_image_markdown.assert_called_once_with(
-            "/path/to/test.png", "test.md", True, ""
+            "/path/to/test.png", "test.md", True, "assets/images"
         )
 
     def test_replace_blocks_mismatched_lengths(self, svg_config):
@@ -372,3 +372,22 @@ Some text.
 
         assert resolved_paths[0] == "/absolute/path/test.svg"
         assert resolved_paths[1] == ""  # インラインSVGの場合は空文字列
+
+    def test_resolve_svg_file_paths_windows_absolute_paths(self, svg_config):
+        """Windowsドライブレター形式の絶対パスはそのまま返す"""
+        processor = MarkdownProcessor(svg_config)
+
+        blocks = [
+            SvgBlock(file_path="C:/images/diagram.svg"),
+            SvgBlock(file_path=r"D:\assets\chart.svg"),
+        ]
+
+        page_file = "guide/intro.md"
+        docs_dir = "/home/ubuntu/mkdocs-svg-to-png/docs"
+
+        resolved_paths = processor.resolve_svg_file_paths_from_page(
+            blocks, page_file, docs_dir
+        )
+
+        assert resolved_paths[0] == "C:/images/diagram.svg"
+        assert resolved_paths[1] == "D:/assets/chart.svg"

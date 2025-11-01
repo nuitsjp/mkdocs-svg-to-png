@@ -4,9 +4,11 @@ SvgProcessorクラスのテスト
 """
 
 from pathlib import Path
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
-from mkdocs_svg_to_png.processor import SvgProcessor
+import pytest
+
+from mkdocs_svg_to_png.processor import SvgBlockProcessingResult, SvgProcessor
 from mkdocs_svg_to_png.svg_block import SvgBlock
 
 
@@ -20,6 +22,7 @@ class TestSvgProcessor:
         assert processor.logger is not None
         assert processor.markdown_processor is not None
         assert processor.svg_converter is not None
+        assert hasattr(processor, "_process_svg_blocks")
 
     def test_process_page_with_blocks(self, svg_config):
         """SVGブロックがある場合のページ処理をテスト"""
@@ -123,6 +126,43 @@ print("Hello")
         assert result_content == markdown
         assert len(result_paths) == 0
         mock_block.generate_png.assert_called_once()
+
+    def test_processor_has_no_legacy_failure_handlers(self, svg_config):
+        """未使用のエラーハンドラが残っていないことを確認する。"""
+        processor = SvgProcessor(svg_config)
+
+        assert not hasattr(processor, "_log_generation_failure")
+        assert not hasattr(processor, "_raise_generation_error")
+        assert not hasattr(processor, "_handle_file_error")
+        assert not hasattr(processor, "_handle_unexpected_error")
+
+    def test_process_svg_blocks_returns_structured_results(self, svg_config, tmp_path):
+        """_process_svg_blocks がブロックとパスを含む専用結果を返すか確認する。"""
+        processor = SvgProcessor(svg_config)
+        block = SvgBlock(code="<svg width='10' height='10'></svg>")
+
+        with patch.object(SvgBlock, "generate_png", return_value=True) as mock_generate:
+            results = processor._process_svg_blocks([block], "diagram.md", tmp_path)
+
+        assert len(results) == 1
+        result = results[0]
+        assert isinstance(result, SvgBlockProcessingResult)
+        assert result.block is block
+        assert result.image_path.endswith(".png")
+        mock_generate.assert_called_once_with(
+            result.image_path, processor.svg_converter
+        )
+
+    def test_resolve_svg_file_paths_rejects_non_svg_block(self, svg_config, tmp_path):
+        """SvgBlock 以外が渡された場合に例外が発生することを確認する。"""
+        processor = SvgProcessor(svg_config)
+
+        with pytest.raises(TypeError):
+            processor._resolve_svg_file_paths(
+                [object()],
+                docs_dir=tmp_path,
+                page_file="invalid.md",
+            )
 
     def test_process_page_with_svg_file_reference_needs_docs_base_path(self, tmp_path):
         """SVGファイル参照でdocs_base_pathが必要なケースをテスト"""

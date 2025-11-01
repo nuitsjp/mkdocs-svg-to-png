@@ -1,5 +1,5 @@
+import logging
 import os
-import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional
 
@@ -21,17 +21,19 @@ from .utils import clean_generated_images
 
 
 class SvgToPngPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped-call]
+    """Markdown 内の SVG を PNG へ変換する MkDocs プラグイン本体。"""
+
     config_scheme = SvgConfigManager.get_config_scheme()
 
     def __init__(self) -> None:
+        """処理器や生成物のトラッキング状態を初期化する。"""
         super().__init__()
         self.processor: Optional[SvgProcessor] = None
         self.generated_images: list[str] = []
         self.files: Optional[Files] = None
         self.logger = get_logger(__name__)
 
-        self.is_serve_mode: bool = "serve" in sys.argv
-        self.is_verbose_mode: bool = "--verbose" in sys.argv or "-v" in sys.argv
+        self.is_serve_mode: bool = False
 
     def _should_be_enabled(self, config: dict[str, Any]) -> bool:
         """環境変数設定に基づいてプラグインが有効化されるべきかどうかを判定"""
@@ -46,12 +48,18 @@ class SvgToPngPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped-call]
         return True
 
     def on_config(self, config: Any) -> Any:
+        """設定読み込み時にログや処理器を初期化し、動作可否を判断する。"""
         try:
             config_dict = dict(self.config)
             SvgConfigManager().validate(config_dict)
 
-            # CLIフラグが指定されている場合は優先、そうでなければ設定値を使用
-            if self.is_verbose_mode:
+            # MkDocs 設定から serve モードを検出（watch 対象があれば配信中と判断）
+            self.is_serve_mode = (
+                self._detect_serve_mode_from_config(config) or self.is_serve_mode
+            )
+
+            # ルートロガーが DEBUG の場合は詳細ログを優先する
+            if self._root_logger_requests_debug():
                 config_dict["log_level"] = "DEBUG"
             # else: config_dictのlog_levelをそのまま使用
 
@@ -90,6 +98,7 @@ class SvgToPngPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped-call]
         return config
 
     def on_files(self, files: Any, *, config: Any) -> Any:
+        """ビルド対象ファイル一覧を受け取り、生成物を追加できるよう保持する。"""
         if not self._should_be_enabled(self.config) or not self.processor:
             return files
 
@@ -102,7 +111,7 @@ class SvgToPngPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped-call]
     def _register_generated_images_to_files(
         self, image_paths: list[str], docs_dir: Path, config: Any
     ) -> None:
-        """生成された画像をFilesオブジェクトに追加"""
+        """生成された画像を Files オブジェクトに追加する。"""
         if not (image_paths and self.files):
             return
 
@@ -138,13 +147,13 @@ class SvgToPngPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped-call]
                 continue
 
     def _remove_existing_file_by_path(self, src_path: str) -> bool:
-        """指定されたsrc_pathを持つファイルを削除する
+        """指定された src_path を持つ既存エントリを削除する。
 
-        Args:
-            src_path: 削除するファイルのsrc_path
+        引数:
+            src_path: 削除対象の src_path
 
-        Returns:
-            削除されたファイルがあればTrue、なければFalse
+        戻り値:
+            削除された場合は True、見つからなければ False
         """
         if self.files is None:
             return False
@@ -158,7 +167,7 @@ class SvgToPngPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped-call]
     def _process_svg_diagrams(
         self, markdown: str, page: Any, config: Any
     ) -> Optional[str]:
-        """SVG図の処理を実行"""
+        """単一ページの SVG ブロック検出から PNG 生成・差し替えを行う。"""
         if not self.processor:
             return markdown
 
@@ -171,7 +180,6 @@ class SvgToPngPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped-call]
                 page.file.src_path,
                 markdown,
                 output_dir,
-                page_url=page.url,
                 docs_dir=docs_dir,
             )
 
@@ -230,6 +238,7 @@ class SvgToPngPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped-call]
     def on_page_markdown(
         self, markdown: str, *, page: Any, config: Any, files: Any
     ) -> Optional[str]:
+        """ページ単位で Markdown を処理し、SVG を PNG 参照に置き換える。"""
         if not self._should_be_enabled(self.config):
             return markdown
 
@@ -239,6 +248,7 @@ class SvgToPngPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped-call]
         return self._process_svg_diagrams(markdown, page, config)
 
     def on_post_build(self, *, config: Any) -> None:
+        """ビルド後に生成画像の集計やクリーンアップを行う。"""
         if not self._should_be_enabled(self.config):
             return
 
@@ -253,7 +263,42 @@ class SvgToPngPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped-call]
             clean_generated_images(self.generated_images, self.logger)
 
     def on_serve(self, server: Any, *, config: Any, builder: Any) -> Any:
+        """`mkdocs serve` 時に特別な処理は行わず、サーバーをそのまま返す。"""
+        self.is_serve_mode = True
         if not self._should_be_enabled(self.config):
             return server
 
         return server
+
+    def _detect_serve_mode_from_config(self, config: Any) -> bool:
+        """MkDocs 設定オブジェクトから配信モードを推定する。"""
+        watch_value = self._config_lookup(config, "watch")
+        return bool(watch_value)
+
+    def _root_logger_requests_debug(self) -> bool:
+        """ルートロガーの設定からデバッグログ要求を検出する。"""
+        root_logger = logging.getLogger()
+        effective_level = root_logger.getEffectiveLevel()
+        if effective_level == logging.NOTSET:
+            # NOTSET は親ロガー依存のため明示的な要求とみなさない
+            return False
+        return effective_level <= logging.DEBUG
+
+    def _config_lookup(self, config: Any, key: str, default: Any = None) -> Any:
+        """MkDocsConfig 互換オブジェクトから値を取得するヘルパー。"""
+        if isinstance(config, dict):
+            return config.get(key, default)
+
+        try:
+            return config[key]
+        except Exception:  # pragma: no cover - フォールバック
+            getter = getattr(config, "get", None)
+            if callable(getter):
+                try:
+                    return getter(key, default)
+                except TypeError:
+                    try:
+                        return getter(key)
+                    except Exception:  # pragma: no cover - フォールバック
+                        return default
+            return default
