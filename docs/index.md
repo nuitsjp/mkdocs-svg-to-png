@@ -127,6 +127,7 @@ plugins:
 - **`enabled_if_env`** (default: `null`)
   - Environment variable name to conditionally enable the plugin
   - Plugin activates only when the variable is set and non-empty
+  - The check happens once at MkDocs startup and is not re-evaluated mid-run
   - If `null`, plugin is always enabled
 
 - **`output_dir`** (default: `"assets/images"`)
