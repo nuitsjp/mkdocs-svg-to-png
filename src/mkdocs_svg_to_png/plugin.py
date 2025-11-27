@@ -33,19 +33,26 @@ class SvgToPngPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped-call]
         self.files: Optional[Files] = None
         self.logger = get_logger(__name__)
 
+        self.enabled: bool | None = None
+
         self.is_serve_mode: bool = False
 
-    def _should_be_enabled(self, config: dict[str, Any]) -> bool:
-        """環境変数設定に基づいてプラグインが有効化されるべきかどうかを判定"""
-        enabled_if_env = config.get("enabled_if_env")
+    def _determine_enabled(self, config: dict[str, Any]) -> bool:
+        """設定と環境変数から有効化可否を決定する。"""
+        enabled_if_env = self._config_lookup(config, "enabled_if_env")
 
         if enabled_if_env is not None:
-            # enabled_if_envが設定されている場合、環境変数の存在と値をチェック
             env_value = os.environ.get(enabled_if_env)
             return env_value is not None and env_value.strip() != ""
 
-        # enabled_if_envが設定されていない場合はデフォルトで有効
         return True
+
+    def _should_be_enabled(self, config: dict[str, Any]) -> bool:
+        """一度算出した有効化状態をキャッシュして返す。"""
+        if self.enabled is None:
+            self.enabled = self._determine_enabled(config)
+
+        return self.enabled
 
     def on_config(self, config: Any) -> Any:
         """設定読み込み時にログや処理器を初期化し、動作可否を判断する。"""
@@ -66,8 +73,11 @@ class SvgToPngPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped-call]
             # ログフォーマットの設定を適用（常にSimpleFormatter使用）
             setup_plugin_logging(level=config_dict.get("log_level", "INFO"), force=True)
 
-            if not self._should_be_enabled(self.config):
+            self.enabled = self._should_be_enabled(config_dict)
+
+            if not self.enabled:
                 self.logger.info("svg-to-png plugin is disabled")
+                self.processor = None
                 return config
 
             self.processor = SvgProcessor(config_dict)

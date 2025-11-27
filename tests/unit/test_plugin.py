@@ -96,6 +96,39 @@ class TestSvgToPngPlugin:
 
         assert plugin.is_serve_mode is True
 
+    def test_plugin_enabled_state_is_fixed_after_config(
+        self, plugin, mock_page, mock_config, monkeypatch
+    ):
+        """環境変数が後から変わっても初期化時の有効状態を維持するかテスト (TDD RED)"""
+        env_var = "ENABLE_SVG_TO_PNG"
+        plugin.config = {
+            "enabled_if_env": env_var,
+            "output_dir": "assets/images",
+            "error_on_fail": False,
+            "log_level": "INFO",
+        }
+
+        monkeypatch.setenv(env_var, "1")
+
+        mock_processor = Mock()
+        with (
+            patch("mkdocs_svg_to_png.plugin.SvgProcessor", return_value=mock_processor),
+            patch("mkdocs_svg_to_png.plugin.setup_plugin_logging"),
+        ):
+            plugin.on_config(mock_config)
+
+        # 初期化後に環境変数を変更しても有効状態が揺らがないことを確認したい
+        monkeypatch.delenv(env_var, raising=False)
+
+        mock_processor.process_page.return_value = ("updated", ["/tmp/image.png"])
+
+        result = plugin.on_page_markdown(
+            "# Test", page=mock_page, config=mock_config, files=[]
+        )
+
+        assert result == "updated"
+        mock_processor.process_page.assert_called_once()
+
     def test_config_validation_disabled_plugin(self, plugin, mock_config):
         """プラグインが無効な場合にprocessorがNoneになるかテスト"""
         plugin.config = {
