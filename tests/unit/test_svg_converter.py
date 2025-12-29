@@ -9,7 +9,11 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from mkdocs_svg_to_png.exceptions import SvgConversionError, SvgFileError
+from mkdocs_svg_to_png.exceptions import (
+    SvgConfigError,
+    SvgConversionError,
+    SvgFileError,
+)
 from mkdocs_svg_to_png.svg_converter import SvgToPngConverter
 
 
@@ -292,6 +296,42 @@ class TestSvgToPngConverter:
         mock_playwright_conversion.assert_called_once_with(
             converter, "<svg width='100' height='100'/>", "/tmp/test.png"
         )
+
+    def test_convert_svg_content_raises_when_playwright_fails_and_error_on_fail_true(
+        self, mock_playwright_conversion
+    ):
+        """Playwright 変換が失敗した場合、error_on_fail=True なら例外にする。"""
+        config = {
+            "output_dir": "assets/images",
+            "scale": 1.0,
+            "device_scale_factor": 1.0,
+            "default_width": 800,
+            "default_height": 600,
+            "error_on_fail": True,
+        }
+        converter = SvgToPngConverter(config)
+        mock_playwright_conversion.side_effect = RuntimeError("Playwright timed out")
+
+        with pytest.raises(SvgConversionError):
+            converter.convert_svg_content(
+                "<svg width='10' height='10'></svg>", "/tmp/x.png"
+            )
+
+    def test_convert_svg_content_raises_when_playwright_browser_missing(
+        self, svg_config, mock_playwright_conversion
+    ):
+        """Playwrightブラウザ未導入は設定ミスとして常に気づけるよう例外化する。"""
+        converter = SvgToPngConverter({**svg_config, "error_on_fail": False})
+        mock_playwright_conversion.side_effect = RuntimeError(
+            "BrowserType.launch: Executable doesn't exist"
+        )
+
+        with pytest.raises(SvgConfigError) as exc_info:
+            converter.convert_svg_content(
+                "<svg width='10' height='10'></svg>", "/tmp/x.png"
+            )
+
+        assert "playwright" in str(exc_info.value).lower()
 
     def test_validate_svg_content_valid(self, converter):
         """Test SVG content validation with valid content."""
