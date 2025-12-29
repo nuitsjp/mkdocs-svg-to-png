@@ -21,12 +21,13 @@ concurrency:
 
 env:
   PYTHON_VERSION: "3.12"
-  UV_CACHE_DIR: /tmp/.uv-cache
 
 jobs:
   lint:
     name: Lint
     runs-on: ubuntu-latest
+    env:
+      UV_CACHE_DIR: ${{ github.workspace }}/.uv-cache
     steps:
     - uses: actions/checkout@v5
       with:
@@ -56,6 +57,8 @@ jobs:
   type-check:
     name: Type Check
     runs-on: ubuntu-latest
+    env:
+      UV_CACHE_DIR: ${{ github.workspace }}/.uv-cache
     steps:
     - uses: actions/checkout@v5
 
@@ -77,11 +80,16 @@ jobs:
   test:
     name: Test Python ${{ matrix.python-version }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    env:
+      UV_CACHE_DIR: ${{ github.workspace }}/.uv-cache
+    defaults:
+      run:
+        shell: bash
     strategy:
       fail-fast: false
       matrix:
         python-version: ["3.12"]
-        os: [ubuntu-latest]
+        os: [ubuntu-latest, windows-latest]
 
     steps:
     - uses: actions/checkout@v5
@@ -108,8 +116,14 @@ jobs:
 
     - name: Install Playwright browsers
       run: uv run playwright install --with-deps chromium
+      if: runner.os != 'Windows'
+
+    - name: Install Playwright browsers (Windows)
+      run: uv run playwright install chromium
+      if: runner.os == 'Windows'
 
     - name: Verify CI configuration
+      shell: bash
       run: |
         echo "Checking Puppeteer config for CI environment..."
         ls -la .github/puppeteer.config.json
