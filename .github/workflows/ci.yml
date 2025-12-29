@@ -27,8 +27,7 @@ jobs:
     name: Lint
     runs-on: ubuntu-latest
     env:
-      # runner.temp is cross-platform (Linux/macOS/Windows).
-      UV_CACHE_DIR: ${{ runner.temp }}/.uv-cache
+      UV_CACHE_DIR: ${{ github.workspace }}/.uv-cache
     steps:
     - uses: actions/checkout@v5
       with:
@@ -59,8 +58,7 @@ jobs:
     name: Type Check
     runs-on: ubuntu-latest
     env:
-      # runner.temp is cross-platform (Linux/macOS/Windows).
-      UV_CACHE_DIR: ${{ runner.temp }}/.uv-cache
+      UV_CACHE_DIR: ${{ github.workspace }}/.uv-cache
     steps:
     - uses: actions/checkout@v5
 
@@ -83,8 +81,7 @@ jobs:
     name: Test Python ${{ matrix.python-version }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     env:
-      # runner.temp is cross-platform (Linux/macOS/Windows).
-      UV_CACHE_DIR: ${{ runner.temp }}/.uv-cache
+      UV_CACHE_DIR: ${{ github.workspace }}/.uv-cache
     defaults:
       run:
         shell: bash
