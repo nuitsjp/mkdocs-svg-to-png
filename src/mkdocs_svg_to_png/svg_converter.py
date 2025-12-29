@@ -13,7 +13,7 @@ except ImportError:
     # defusedxml が利用できない場合は標準ライブラリで代替する（安全性は低下）
     import xml.etree.ElementTree as ET  # nosec B405
 
-from .exceptions import SvgConversionError, SvgFileError
+from .exceptions import SvgConfigError, SvgConversionError, SvgFileError
 from .logging_config import get_logger
 from .utils import ensure_directory
 
@@ -68,6 +68,8 @@ class SvgToPngConverter:
             else:
                 return False
 
+        except SvgConfigError:
+            raise
         except Exception as e:
             return self._handle_conversion_error(e, output_path, svg_content)
 
@@ -106,6 +108,8 @@ class SvgToPngConverter:
 
         try:
             return self.convert_svg_content(svg_content, output_path)
+        except SvgConfigError:
+            raise
         except Exception as error:
             return self._handle_conversion_error(
                 error, output_path, svg_content, svg_path
@@ -356,8 +360,24 @@ class SvgToPngConverter:
                     self._convert_svg_with_playwright(svg_content, output_path)
                 )
         except Exception as e:
+            if self._is_playwright_browser_missing_error(e):
+                raise SvgConfigError(
+                    "Playwright browser is not installed",
+                    suggestion="Run: playwright install chromium",
+                ) from e
             self.logger.error(f"Playwright conversion failed: {e}")
             return False
+
+    @staticmethod
+    def _is_playwright_browser_missing_error(error: Exception) -> bool:
+        message = str(error).lower()
+        needles = (
+            "executable doesn't exist",
+            "playwright install",
+            "headless_shell.exe",
+            "chromium_headless_shell",
+        )
+        return any(needle in message for needle in needles)
 
     def _handle_conversion_error(
         self,
@@ -380,6 +400,14 @@ class SvgToPngConverter:
         例外:
             SvgConversionError: error_on_fail が True の場合
         """
+        if isinstance(
+            error, SvgConfigError
+        ) or self._is_playwright_browser_missing_error(error):
+            raise SvgConfigError(
+                "Playwright browser is not installed",
+                suggestion="Run: playwright install chromium",
+            ) from error
+
         error_msg = f"Playwright conversion failed: {error}"
         self.logger.error(error_msg)
 

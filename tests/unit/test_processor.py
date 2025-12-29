@@ -239,13 +239,33 @@ print("Hello")
 ![Mermaid Diagram](assets/images/architecture_mermaid_0_abc123.svg)
 """
 
-        # process_pageにdocs_dirを渡すことで成功するはず
-        result_content, result_paths = processor.process_page(
-            "architecture.md",
-            markdown,
-            str(assets_dir),
-            docs_dir=str(docs_dir),  # docs_dirを渡す
+        dummy_png = (
+            b"\x89PNG\r\n\x1a\n"
+            b"\x00\x00\x00\rIHDR"
+            b"\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00"
+            b"\x1f\x15\xc4\x89"
+            b"\x00\x00\x00\nIDATx\x9cc`\x00\x00\x00\x02\x00\x01"
+            b"\xe2!\xbc3"
+            b"\x00\x00\x00\x00IEND\xaeB`\x82"
         )
+
+        def dummy_convert_svg_file(svg_path: str, output_path: str) -> bool:
+            assert Path(svg_path) == svg_file
+            Path(output_path).write_bytes(dummy_png)
+            return True
+
+        with patch.object(
+            processor.svg_converter,
+            "convert_svg_file",
+            side_effect=dummy_convert_svg_file,
+        ):
+            # process_pageにdocs_dirを渡すことで成功するはず
+            result_content, result_paths = processor.process_page(
+                "architecture.md",
+                markdown,
+                str(assets_dir),
+                docs_dir=str(docs_dir),  # docs_dirを渡す
+            )
 
         # SVGからPNGへの変換が成功し、画像パスが返るはず
         assert len(result_paths) == 1
