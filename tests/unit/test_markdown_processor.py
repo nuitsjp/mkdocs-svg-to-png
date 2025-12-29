@@ -67,6 +67,40 @@ Some text.
         blocks = processor.extract_svg_blocks(markdown)
         assert len(blocks) == 0
 
+    def test_extract_ignores_svg_file_reference_inside_fenced_code_block(
+        self, svg_config
+    ):
+        """フェンスコードブロック内のSVG参照は抽出しない"""
+        processor = MarkdownProcessor(svg_config)
+
+        markdown = """```markdown
+![An SVG](image.svg)
+```"""
+        blocks = processor.extract_svg_blocks(markdown)
+        assert len(blocks) == 0
+
+    def test_extract_ignores_svg_fence_inside_other_fenced_code_block(self, svg_config):
+        """別のフェンスコードブロック内の ```svg は抽出しない（ネスト扱い）"""
+        processor = MarkdownProcessor(svg_config)
+
+        markdown = """````markdown
+```svg
+<svg>A</svg>
+```
+````"""
+        blocks = processor.extract_svg_blocks(markdown)
+        assert len(blocks) == 0
+
+    def test_extract_ignores_svg_file_reference_inside_tilde_fence(self, svg_config):
+        """~~~ フェンス内のSVG参照も抽出しない"""
+        processor = MarkdownProcessor(svg_config)
+
+        markdown = """~~~markdown
+![An SVG](image.svg)
+~~~"""
+        blocks = processor.extract_svg_blocks(markdown)
+        assert len(blocks) == 0
+
     def test_extract_mixed_blocks_no_overlap(self, svg_config):
         """属性付き・属性なしブロック混在時の抽出テスト"""
         processor = MarkdownProcessor(svg_config)

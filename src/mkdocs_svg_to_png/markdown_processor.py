@@ -1,4 +1,5 @@
 import re
+from bisect import bisect_right
 from pathlib import Path
 from typing import Any
 
@@ -68,57 +69,155 @@ class MarkdownProcessor:
 
     def extract_svg_blocks(self, markdown_content: str) -> list[SvgBlock]:
         """SVGファイル参照とインラインSVGコードブロックを抽出する"""
-        blocks = []
-
         # SVGファイル参照パターン: ![alt](path.svg)
         file_pattern = r"!\[[^\]]*\]\(((?!https?://)[^)]+\.svg)\)"
 
-        # インラインSVGコードブロックパターン（属性付き）
-        attr_pattern = r"```svg\s*\{([^}]*)\}\s*\n(.*?)\n```"
+        blocks, fenced_ranges = self._extract_svg_blocks_from_fences(markdown_content)
+        fenced_ranges, fenced_range_starts = self._build_range_index(fenced_ranges)
 
-        # インラインSVGコードブロックパターン（基本）
-        basic_pattern = r"```svg\s*\n(.*?)\n```"
-
-        # ファイル参照を処理
         for match in re.finditer(file_pattern, markdown_content):
+            if self._is_position_in_ranges(
+                match.start(), fenced_ranges, fenced_range_starts
+            ):
+                continue
             file_path = match.group(1)
-            block = SvgBlock(
-                file_path=file_path, start_pos=match.start(), end_pos=match.end()
-            )
-            blocks.append(block)
-
-        # 属性付きインラインSVGを処理
-        for match in re.finditer(attr_pattern, markdown_content, re.DOTALL):
-            attr_str = match.group(1).strip()
-            code = match.group(2).strip()
-            attributes = self._parse_attributes(attr_str)
-
-            block = SvgBlock(
-                code=code,
-                start_pos=match.start(),
-                end_pos=match.end(),
-                attributes=attributes,
-            )
-            blocks.append(block)
-
-        # 基本インラインSVGを処理（既に処理されたものと重複しないように）
-        for match in re.finditer(basic_pattern, markdown_content, re.DOTALL):
-            overlaps = any(
-                match.start() >= block.start_pos and match.end() <= block.end_pos
-                for block in blocks
-            )
-            # 属性付き解析で既に取り込まれた領域はスキップする
-            if not overlaps:
-                code = match.group(1).strip()
-                block = SvgBlock(
-                    code=code, start_pos=match.start(), end_pos=match.end()
+            blocks.append(
+                SvgBlock(
+                    file_path=file_path,
+                    start_pos=match.start(),
+                    end_pos=match.end(),
                 )
-                blocks.append(block)
+            )
 
         blocks.sort(key=lambda x: x.start_pos)
 
         self.logger.info(f"Found {len(blocks)} SVG blocks")
         return blocks
+
+    def _extract_svg_blocks_from_fences(
+        self, markdown_content: str
+    ) -> tuple[list[SvgBlock], list[tuple[int, int]]]:
+        fence_pattern = re.compile(
+            r"^(?P<indent>[ \t]{0,3})(?P<fence>`{3,}|~{3,})(?P<info>[^\n]*)$",
+            re.MULTILINE,
+        )
+
+        blocks: list[SvgBlock] = []
+        fenced_ranges: list[tuple[int, int]] = []
+
+        in_fence = False
+        open_fence_char = ""
+        open_fence_len = 0
+        fence_block_start = 0
+
+        in_svg = False
+        svg_start = 0
+        svg_content_start = 0
+        svg_attributes: dict[str, Any] = {}
+
+        for match in fence_pattern.finditer(markdown_content):
+            fence = match.group("fence")
+            info = match.group("info") or ""
+            info_stripped = info.strip()
+            fence_char = fence[0]
+
+            if not in_fence:
+                if fence_char == "`" and "`" in info:
+                    continue
+
+                attributes = self._parse_svg_info(info_stripped)
+                in_svg = attributes is not None
+                svg_attributes = attributes or {}
+
+                in_fence = True
+                open_fence_char = fence_char
+                open_fence_len = len(fence)
+                fence_block_start = match.start()
+
+                if in_svg:
+                    svg_start = fence_block_start
+                    svg_content_start = self._advance_past_newline(
+                        markdown_content, match.end()
+                    )
+                continue
+
+            if not self._is_closing_fence(
+                fence, info_stripped, open_fence_char, open_fence_len
+            ):
+                continue
+
+            fenced_ranges.append((fence_block_start, match.end()))
+
+            if in_svg:
+                code = markdown_content[svg_content_start : match.start()].strip()
+                blocks.append(
+                    SvgBlock(
+                        code=code,
+                        start_pos=svg_start,
+                        end_pos=match.end(),
+                        attributes=svg_attributes,
+                    )
+                )
+
+            in_fence = False
+            in_svg = False
+            open_fence_char = ""
+            open_fence_len = 0
+            fence_block_start = 0
+            svg_start = 0
+            svg_content_start = 0
+            svg_attributes = {}
+
+        if in_fence:
+            fenced_ranges.append((fence_block_start, len(markdown_content)))
+
+        return blocks, fenced_ranges
+
+    def _build_range_index(
+        self, ranges: list[tuple[int, int]]
+    ) -> tuple[list[tuple[int, int]], list[int]]:
+        sorted_ranges = sorted(ranges, key=lambda r: r[0])
+        starts = [start for start, _ in sorted_ranges]
+        return sorted_ranges, starts
+
+    def _is_position_in_ranges(
+        self,
+        pos: int,
+        ranges: list[tuple[int, int]],
+        starts: list[int],
+    ) -> bool:
+        if not ranges:
+            return False
+        idx = bisect_right(starts, pos) - 1
+        if idx < 0:
+            return False
+        start, end = ranges[idx]
+        return start <= pos < end
+
+    def _parse_svg_info(self, info_str: str) -> dict[str, Any] | None:
+        if not info_str.startswith("svg"):
+            return None
+
+        rest = info_str[len("svg") :]
+        if rest and not rest[0].isspace() and not rest.startswith("{"):
+            return None
+
+        attr_match = re.search(r"\{([^}]*)\}", rest)
+        if attr_match:
+            return self._parse_attributes(attr_match.group(1).strip())
+        return {}
+
+    def _advance_past_newline(self, text: str, pos: int) -> int:
+        if text.startswith("\r\n", pos):
+            return pos + 2
+        if pos < len(text) and text[pos] == "\n":
+            return pos + 1
+        return pos
+
+    def _is_closing_fence(
+        self, fence: str, info_str: str, fence_char: str, fence_len: int
+    ) -> bool:
+        return fence[0] == fence_char and len(fence) >= fence_len and info_str == ""
 
     def _create_svg_block(self, code: str, file_path: str) -> SvgBlock:
         """SVGブロックを作成するヘルパーメソッド（テスト用）"""
