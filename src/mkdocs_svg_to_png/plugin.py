@@ -1,7 +1,7 @@
 import logging
 import os
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any, Literal, Optional
 
 from mkdocs.plugins import BasePlugin
 
@@ -54,16 +54,18 @@ class SvgToPngPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped-call]
 
         return self.enabled
 
+    def on_startup(
+        self, *, command: Literal["build", "gh-deploy", "serve"], dirty: bool
+    ) -> None:
+        """MkDocs起動時のコマンドに応じて配信モードを設定する。"""
+        del dirty
+        self.is_serve_mode = command == "serve"
+
     def on_config(self, config: Any) -> Any:
         """設定読み込み時にログや処理器を初期化し、動作可否を判断する。"""
         try:
             config_dict = dict(self.config)
             SvgConfigManager().validate(config_dict)
-
-            # MkDocs 設定から serve モードを検出（watch 対象があれば配信中と判断）
-            self.is_serve_mode = (
-                self._detect_serve_mode_from_config(config) or self.is_serve_mode
-            )
 
             # ルートロガーが DEBUG の場合は詳細ログを優先する
             if self._root_logger_requests_debug():
@@ -279,11 +281,6 @@ class SvgToPngPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped-call]
             return server
 
         return server
-
-    def _detect_serve_mode_from_config(self, config: Any) -> bool:
-        """MkDocs 設定オブジェクトから配信モードを推定する。"""
-        watch_value = self._config_lookup(config, "watch")
-        return bool(watch_value)
 
     def _root_logger_requests_debug(self) -> bool:
         """ルートロガーの設定からデバッグログ要求を検出する。"""

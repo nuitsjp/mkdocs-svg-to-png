@@ -4,7 +4,7 @@ SvgToPngPluginクラスのテスト
 """
 
 import logging
-from unittest.mock import Mock, patch
+from unittest.mock import ANY, Mock, patch
 
 import pytest
 
@@ -64,8 +64,8 @@ class TestSvgToPngPlugin:
             assert result == mock_config
             assert plugin.processor is not None
 
-    def test_on_config_detects_serve_mode_from_watch(self, plugin):
-        """watch設定がある場合に配信モードと判断するかテスト (TDD RED)"""
+    def test_on_config_does_not_detect_serve_mode_from_watch(self, plugin):
+        """watch設定があってもon_configで配信モード判定しないことをテスト (TDD RED)"""
         plugin.config = {
             "enabled": True,
             "output_dir": "assets/images",
@@ -85,7 +85,23 @@ class TestSvgToPngPlugin:
             mock_processor.return_value = Mock()
             plugin.on_config(mkdocs_config)
 
+        assert plugin.is_serve_mode is False
+
+    def test_on_startup_sets_serve_mode_for_serve_command(self, plugin):
+        """on_startupでserveコマンド時に配信モードになるかテスト (TDD RED)"""
+        plugin.is_serve_mode = False
+
+        plugin.on_startup(command="serve", dirty=False)
+
         assert plugin.is_serve_mode is True
+
+    def test_on_startup_clears_serve_mode_for_build_command(self, plugin):
+        """on_startupでbuildコマンド時に配信モードを解除するかテスト (TDD RED)"""
+        plugin.is_serve_mode = True
+
+        plugin.on_startup(command="build", dirty=False)
+
+        assert plugin.is_serve_mode is False
 
     def test_on_serve_sets_serve_mode_flag(self, plugin):
         """on_serve呼び出し時に配信モードフラグが立つかテスト (TDD RED)"""
@@ -228,6 +244,63 @@ class TestSvgToPngPlugin:
         assert result == "modified content"
         assert plugin.generated_images == ["/path/to/image.png"]
         mock_processor.process_page.assert_called_once()
+
+    def test_on_page_markdown_runs_conversion_in_build_mode_even_with_watch(
+        self, plugin, mock_page, mock_config
+    ):
+        """buildモードではwatchがあっても変換処理を実行するかテスト (TDD RED)"""
+        plugin.config = {
+            "enabled": True,
+            "output_dir": "assets/images",
+            "error_on_fail": False,
+            "log_level": "INFO",
+        }
+        plugin.on_startup(command="build", dirty=False)
+
+        mock_processor = Mock()
+        mock_processor.process_page.return_value = (
+            "converted",
+            ["/path/to/image.png"],
+        )
+        plugin.processor = mock_processor
+        markdown = "# Test\n\n```svg\n<svg></svg>\n```"
+
+        mkdocs_config = {"docs_dir": "/tmp/docs", "site_dir": "/tmp/site", "watch": []}
+        result = plugin.on_page_markdown(
+            markdown, page=mock_page, config=mkdocs_config, files=[]
+        )
+
+        assert result == "converted"
+        mock_processor.process_page.assert_called_once_with(
+            "test.md",
+            markdown,
+            ANY,
+            docs_dir=ANY,
+        )
+
+    def test_on_page_markdown_skips_conversion_in_serve_mode_from_startup(
+        self, plugin, mock_page
+    ):
+        """serveモードでは変換処理をスキップするかテスト (TDD RED)"""
+        plugin.config = {
+            "enabled": True,
+            "output_dir": "assets/images",
+            "error_on_fail": False,
+            "log_level": "INFO",
+        }
+        plugin.on_startup(command="serve", dirty=False)
+
+        mock_processor = Mock()
+        plugin.processor = mock_processor
+        markdown = "# Test\n\n```svg\n<svg></svg>\n```"
+        mkdocs_config = {"docs_dir": "/tmp/docs", "site_dir": "/tmp/site", "watch": []}
+
+        result = plugin.on_page_markdown(
+            markdown, page=mock_page, config=mkdocs_config, files=[]
+        )
+
+        assert result == markdown
+        mock_processor.process_page.assert_not_called()
 
     def test_plugin_initialization_log_message(self, plugin, mock_config):
         """プラグイン初期化ログメッセージが新形式であることをテスト (TDD RED)"""
