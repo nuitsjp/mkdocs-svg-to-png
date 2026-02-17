@@ -50,8 +50,10 @@ jobs:
 
     - name: Check for security issues
       run: |
-        # 現状修正版が存在しないGHSA-2qfp-q593-8484 (brotli) を一時的に無視
-        uv run pip-audit --ignore-vuln GHSA-2qfp-q593-8484
+        # 現状上流で修正版に追従できない脆弱性を一時的に無視
+        # - GHSA-2qfp-q593-8484: brotli
+        # - GHSA-983w-rhvv-gwmv: weasyprint (mkdocs-to-pdf 0.10.1 が 62.3 固定)
+        uv run pip-audit --ignore-vuln GHSA-2qfp-q593-8484 --ignore-vuln GHSA-983w-rhvv-gwmv
         uv run bandit -c pyproject.toml -r src/
 
   type-check:
