@@ -128,20 +128,20 @@ class TestSvgToPngConverter:
         sys.modules.pop(module_name, None)
 
         original_playwright = sys.modules.pop("playwright", None)
-        original_async_api = sys.modules.pop("playwright.async_api", None)
+        original_sync_api = sys.modules.pop("playwright.sync_api", None)
 
         try:
             sys.modules["playwright"] = None
-            sys.modules["playwright.async_api"] = None
+            sys.modules["playwright.sync_api"] = None
 
             module = importlib.import_module(module_name)
         finally:
             sys.modules.pop("playwright", None)
-            sys.modules.pop("playwright.async_api", None)
+            sys.modules.pop("playwright.sync_api", None)
             if original_playwright is not None:
                 sys.modules["playwright"] = original_playwright
-            if original_async_api is not None:
-                sys.modules["playwright.async_api"] = original_async_api
+            if original_sync_api is not None:
+                sys.modules["playwright.sync_api"] = original_sync_api
 
         globals()["SvgToPngConverter"] = module.SvgToPngConverter
         assert hasattr(module, "SvgToPngConverter")
@@ -459,3 +459,301 @@ class TestSvgToPngConverter:
         mock_playwright_conversion.assert_called_once_with(
             converter, svg_content, str(output_path)
         )
+
+
+class TestBrowserLifecycle:
+    """ブラウザインスタンスのライフサイクル管理をテストするクラス。"""
+
+    @pytest.fixture
+    def svg_config(self):
+        """SVG処理用の基本設定"""
+        return {
+            "output_dir": "assets/images",
+            "scale": 1.0,
+            "device_scale_factor": 1.0,
+            "default_width": 800,
+            "default_height": 600,
+            "preserve_original": False,
+            "error_on_fail": False,
+            "log_level": "INFO",
+            "dpi": 150,
+            "quality": 90,
+        }
+
+    def test_initial_state_has_no_browser(self, svg_config):
+        """初期化直後はブラウザインスタンスを持たないことを確認する。"""
+        converter = SvgToPngConverter(svg_config)
+        assert converter._playwright is None
+        assert converter._browser is None
+
+    def test_ensure_browser_launches_browser(self, svg_config):
+        """_ensure_browser が Playwright とブラウザを起動することを確認する。"""
+        converter = SvgToPngConverter(svg_config)
+
+        mock_browser = Mock()
+        mock_playwright_instance = Mock()
+        mock_playwright_instance.chromium.launch.return_value = mock_browser
+
+        mock_sync_playwright = Mock()
+        mock_sync_playwright.return_value.start.return_value = mock_playwright_instance
+
+        with patch(
+            "mkdocs_svg_to_png.svg_converter.sync_playwright", mock_sync_playwright
+        ):
+            browser = converter._ensure_browser()
+
+        assert browser is mock_browser
+        assert converter._playwright is mock_playwright_instance
+        assert converter._browser is mock_browser
+        mock_playwright_instance.chromium.launch.assert_called_once_with(headless=True)
+
+    def test_ensure_browser_reuses_existing_browser(self, svg_config):
+        """_ensure_browser が既存ブラウザを再利用することを確認する。"""
+        converter = SvgToPngConverter(svg_config)
+
+        mock_browser = Mock()
+        converter._browser = mock_browser
+        converter._playwright = Mock()
+
+        # sync_playwright が呼ばれないことを確認
+        with patch(
+            "mkdocs_svg_to_png.svg_converter.sync_playwright"
+        ) as mock_sync:
+            browser = converter._ensure_browser()
+
+        assert browser is mock_browser
+        mock_sync.assert_not_called()
+
+    def test_shutdown_closes_browser_and_playwright(self, svg_config):
+        """shutdown がブラウザと Playwright を正しく終了することを確認する。"""
+        converter = SvgToPngConverter(svg_config)
+
+        mock_browser = Mock()
+        mock_playwright = Mock()
+        converter._browser = mock_browser
+        converter._playwright = mock_playwright
+
+        converter.shutdown()
+
+        mock_browser.close.assert_called_once()
+        mock_playwright.stop.assert_called_once()
+        assert converter._browser is None
+        assert converter._playwright is None
+
+    def test_shutdown_is_safe_when_no_browser_started(self, svg_config):
+        """ブラウザ未起動時に shutdown を呼んでもエラーにならないことを確認する。"""
+        converter = SvgToPngConverter(svg_config)
+
+        # 例外が発生しないことを確認
+        converter.shutdown()
+
+        assert converter._browser is None
+        assert converter._playwright is None
+
+    def test_shutdown_can_be_called_multiple_times(self, svg_config):
+        """shutdown を複数回呼んでもエラーにならないことを確認する。"""
+        converter = SvgToPngConverter(svg_config)
+
+        mock_browser = Mock()
+        mock_playwright = Mock()
+        converter._browser = mock_browser
+        converter._playwright = mock_playwright
+
+        converter.shutdown()
+        converter.shutdown()  # 2回目
+
+        # close/stop は1回だけ呼ばれる
+        mock_browser.close.assert_called_once()
+        mock_playwright.stop.assert_called_once()
+
+    def test_convert_uses_context_per_conversion(self, svg_config):
+        """変換ごとにコンテキストが作成・破棄されることを確認する。"""
+        converter = SvgToPngConverter(svg_config)
+
+        mock_page = Mock()
+        mock_context = Mock()
+        mock_context.new_page.return_value = mock_page
+        mock_browser = Mock()
+        mock_browser.new_context.return_value = mock_context
+        converter._browser = mock_browser
+        converter._playwright = Mock()
+
+        svg_content = "<svg width='100' height='100'><rect/></svg>"
+
+        converter._convert_svg_with_playwright(svg_content, "/tmp/test.png")
+
+        mock_browser.new_context.assert_called_once()
+        mock_context.new_page.assert_called_once()
+        mock_context.close.assert_called_once()
+
+    def test_convert_reuses_browser_across_multiple_calls(self, svg_config):
+        """複数回の変換でブラウザインスタンスが再利用されることを確認する。"""
+        converter = SvgToPngConverter(svg_config)
+
+        mock_page = Mock()
+        mock_context = Mock()
+        mock_context.new_page.return_value = mock_page
+        mock_browser = Mock()
+        mock_browser.new_context.return_value = mock_context
+
+        mock_playwright_instance = Mock()
+        mock_playwright_instance.chromium.launch.return_value = mock_browser
+        mock_sync_playwright = Mock()
+        mock_sync_playwright.return_value.start.return_value = mock_playwright_instance
+
+        svg_content = "<svg width='100' height='100'><rect/></svg>"
+
+        with patch(
+            "mkdocs_svg_to_png.svg_converter.sync_playwright", mock_sync_playwright
+        ):
+            converter._convert_svg_with_playwright(svg_content, "/tmp/test1.png")
+            converter._convert_svg_with_playwright(svg_content, "/tmp/test2.png")
+            converter._convert_svg_with_playwright(svg_content, "/tmp/test3.png")
+
+        # ブラウザ起動は1回だけ
+        mock_playwright_instance.chromium.launch.assert_called_once()
+        # コンテキストは3回作成される
+        assert mock_browser.new_context.call_count == 3
+        # コンテキストは3回閉じられる
+        assert mock_context.close.call_count == 3
+
+    def test_convert_preserves_screenshot_parameters(self, svg_config):
+        """変換時のスクリーンショットパラメータが維持されることを確認する。
+
+        後方互換性: omit_background=True, full_page=True が保たれること。
+        """
+        converter = SvgToPngConverter(svg_config)
+
+        mock_page = Mock()
+        mock_context = Mock()
+        mock_context.new_page.return_value = mock_page
+        mock_browser = Mock()
+        mock_browser.new_context.return_value = mock_context
+        converter._browser = mock_browser
+        converter._playwright = Mock()
+
+        svg_content = "<svg width='100' height='100'><rect/></svg>"
+        output_path = "/tmp/test.png"
+
+        converter._convert_svg_with_playwright(svg_content, output_path)
+
+        mock_page.screenshot.assert_called_once_with(
+            path=output_path, full_page=True, omit_background=True
+        )
+
+    def test_convert_sets_viewport_with_scale(self, svg_config):
+        """SVG寸法とscale設定に基づいてビューポートが設定されることを確認する。"""
+        config = {**svg_config, "scale": 2.0}
+        converter = SvgToPngConverter(config)
+
+        mock_page = Mock()
+        mock_context = Mock()
+        mock_context.new_page.return_value = mock_page
+        mock_browser = Mock()
+        mock_browser.new_context.return_value = mock_context
+        converter._browser = mock_browser
+        converter._playwright = Mock()
+
+        svg_content = "<svg width='100' height='50'><rect/></svg>"
+
+        converter._convert_svg_with_playwright(svg_content, "/tmp/test.png")
+
+        mock_page.set_viewport_size.assert_called_once_with(
+            {"width": 200, "height": 100}
+        )
+
+    def test_convert_sets_device_scale_factor(self, svg_config):
+        """device_scale_factor がコンテキスト作成時に渡されることを確認する。"""
+        config = {**svg_config, "device_scale_factor": 2.0}
+        converter = SvgToPngConverter(config)
+
+        mock_page = Mock()
+        mock_context = Mock()
+        mock_context.new_page.return_value = mock_page
+        mock_browser = Mock()
+        mock_browser.new_context.return_value = mock_context
+        converter._browser = mock_browser
+        converter._playwright = Mock()
+
+        svg_content = "<svg width='100' height='100'><rect/></svg>"
+
+        converter._convert_svg_with_playwright(svg_content, "/tmp/test.png")
+
+        mock_browser.new_context.assert_called_once_with(device_scale_factor=2.0)
+
+    def test_context_closed_even_on_error(self, svg_config):
+        """変換中にエラーが発生してもコンテキストが閉じられることを確認する。"""
+        converter = SvgToPngConverter(svg_config)
+
+        mock_page = Mock()
+        mock_page.set_content.side_effect = RuntimeError("render error")
+        mock_context = Mock()
+        mock_context.new_page.return_value = mock_page
+        mock_browser = Mock()
+        mock_browser.new_context.return_value = mock_context
+        converter._browser = mock_browser
+        converter._playwright = Mock()
+
+        svg_content = "<svg width='100' height='100'><rect/></svg>"
+
+        with pytest.raises(RuntimeError, match="render error"):
+            converter._convert_svg_with_playwright(svg_content, "/tmp/test.png")
+
+        # エラーが発生してもコンテキストは閉じられる
+        mock_context.close.assert_called_once()
+
+    def test_ensure_browser_raises_import_error_without_playwright(self, svg_config):
+        """Playwright 未インストール時に ImportError が発生することを確認する。"""
+        converter = SvgToPngConverter(svg_config)
+
+        with (
+            patch("mkdocs_svg_to_png.svg_converter.sync_playwright", None),
+            pytest.raises(ImportError, match="Playwright is required"),
+        ):
+            converter._ensure_browser()
+
+
+class TestPluginShutdownIntegration:
+    """プラグインの on_post_build で shutdown が呼ばれることをテストするクラス。"""
+
+    def test_on_post_build_calls_converter_shutdown(self):
+        """on_post_build でコンバータの shutdown が呼ばれることを確認する。"""
+        from mkdocs_svg_to_png.plugin import SvgToPngPlugin
+
+        plugin = SvgToPngPlugin()
+        plugin.config = {"enabled": True}
+
+        mock_processor = Mock()
+        plugin.processor = mock_processor
+
+        plugin.on_post_build(config=Mock())
+
+        mock_processor.svg_converter.shutdown.assert_called_once()
+
+    def test_on_post_build_shutdown_called_even_when_disabled(self):
+        """プラグイン無効時でも shutdown が呼ばれることを確認する。
+
+        ブラウザがon_config前に何らかの理由で起動していた場合への安全策。
+        """
+        from mkdocs_svg_to_png.plugin import SvgToPngPlugin
+
+        plugin = SvgToPngPlugin()
+        plugin.config = {"enabled": False}
+
+        mock_processor = Mock()
+        plugin.processor = mock_processor
+
+        plugin.on_post_build(config=Mock())
+
+        mock_processor.svg_converter.shutdown.assert_called_once()
+
+    def test_on_post_build_no_processor_no_error(self):
+        """processor が None の場合でもエラーにならないことを確認する。"""
+        from mkdocs_svg_to_png.plugin import SvgToPngPlugin
+
+        plugin = SvgToPngPlugin()
+        plugin.config = {"enabled": True}
+        plugin.processor = None
+
+        # 例外が発生しないことを確認
+        plugin.on_post_build(config=Mock())

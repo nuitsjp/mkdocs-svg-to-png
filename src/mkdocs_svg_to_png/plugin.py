@@ -260,7 +260,11 @@ class SvgToPngPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped-call]
         return self._process_svg_diagrams(markdown, page, config)
 
     def on_post_build(self, *, config: Any) -> None:
-        """ビルド後に生成画像の集計やクリーンアップを行う。"""
+        """ビルド後にブラウザ終了・生成画像の集計・クリーンアップを行う。"""
+        # ブラウザインスタンスを確実に終了する
+        if self.processor:
+            self.processor.svg_converter.shutdown()
+
         if not self._should_be_enabled(self.config):
             return
 

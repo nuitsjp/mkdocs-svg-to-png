@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import re
 from pathlib import Path
 from typing import Any, Callable
@@ -17,9 +16,18 @@ from .exceptions import SvgConfigError, SvgConversionError, SvgFileError
 from .logging_config import get_logger
 from .utils import ensure_directory
 
+# sync_playwright は遅延インポートするが、テストでのパッチポイントを提供する
+try:
+    from playwright.sync_api import sync_playwright
+except ImportError:
+    sync_playwright = None  # type: ignore[assignment]
+
 
 class SvgToPngConverter:
-    """Playwright を経由して SVG コンテンツを PNG へ変換するユーティリティ。"""
+    """Playwright を経由して SVG コンテンツを PNG へ変換するユーティリティ。
+
+    ブラウザインスタンスを再利用し、複数画像の変換時のオーバーヘッドを削減する。
+    """
 
     def __init__(
         self,
@@ -35,7 +43,8 @@ class SvgToPngConverter:
         """
         self.config = config
         self.logger = get_logger(__name__)
-        self._async_playwright: Any | None = None
+        self._playwright: Any | None = None
+        self._browser: Any | None = None
         self._conversion_runner: Callable[[str, str], bool] = (
             runner or self._run_playwright_conversion
         )
@@ -146,15 +155,43 @@ class SvgToPngConverter:
                 cairo_error=str(e),
             ) from e
 
-    async def _convert_svg_with_playwright(
+    def _ensure_browser(self) -> Any:
+        """ブラウザインスタンスを遅延起動し、以降は再利用する。
+
+        戻り値:
+            起動済みの Playwright Browser オブジェクト
+        """
+        if self._browser is not None:
+            return self._browser
+
+        if sync_playwright is None:
+            raise ImportError(
+                "Playwright is required for SVG to PNG conversion. "
+                "Install it with: pip install playwright && "
+                "playwright install chromium"
+            )
+
+        self._playwright = sync_playwright().start()
+        self._browser = self._playwright.chromium.launch(headless=True)
+        self.logger.debug("Playwright ブラウザを起動しました")
+        return self._browser
+
+    def shutdown(self) -> None:
+        """ブラウザと Playwright インスタンスを終了する。"""
+        if self._browser is not None:
+            self._browser.close()
+            self._browser = None
+        if self._playwright is not None:
+            self._playwright.stop()
+            self._playwright = None
+            self.logger.debug("Playwright ブラウザを終了しました")
+
+    def _convert_svg_with_playwright(
         self, svg_content: str, output_path: str
     ) -> bool:
-        """Playwright を利用して SVG を PNG に描画する非同期処理を実行する。
+        """Playwright を利用して SVG を PNG に描画する。
 
-        背景設定は下記の方針で保持される:
-        - SVG が透過背景を明示していれば PNG も透過のまま出力する
-        - SVG が背景色を指定していれば同じ色を反映する
-        - 背景指定がない場合は PNG を透過背景で出力する
+        ブラウザインスタンスを再利用し、ページの作成・破棄のみで変換する。
 
         引数:
             svg_content: SVG マークアップを含む文字列
@@ -163,84 +200,65 @@ class SvgToPngConverter:
         戻り値:
             変換が成功した場合は True、それ以外は False
         """
-        async_playwright = self._get_async_playwright()
+        browser = self._ensure_browser()
+        context = browser.new_context(
+            device_scale_factor=self.config.get("device_scale_factor", 1.0)
+        )
+        page = context.new_page()
 
-        async with async_playwright() as p:
-            # Chromium ブラウザを起動する
-            browser = await p.chromium.launch(headless=True)
-            context = await browser.new_context(
-                device_scale_factor=self.config.get("device_scale_factor", 1.0)
+        try:
+            # SVG の描画サイズを解析する
+            width, height = self._extract_svg_dimensions(svg_content)
+
+            # 設定されたスケールを掛け合わせる
+            scale = self.config.get("scale", 1.0)
+            scaled_width = int(width * scale)
+            scaled_height = int(height * scale)
+
+            # ビューポートを SVG サイズに合わせる
+            page.set_viewport_size(
+                {"width": scaled_width, "height": scaled_height}
             )
-            page = await context.new_page()
 
-            try:
-                # SVG の描画サイズを解析する
-                width, height = self._extract_svg_dimensions(svg_content)
+            # SVG を埋め込んだ HTML を生成する
+            html_content = f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <style>
+                    body {{
+                        margin: 0;
+                        padding: 0;
+                        width: {scaled_width}px;
+                        height: {scaled_height}px;
+                    }}
+                    svg {{
+                        width: 100%;
+                        height: 100%;
+                    }}
+                </style>
+            </head>
+            <body>
+                {svg_content}
+            </body>
+            </html>
+            """
 
-                # 設定されたスケールを掛け合わせる
-                scale = self.config.get("scale", 1.0)
-                scaled_width = int(width * scale)
-                scaled_height = int(height * scale)
+            # HTML をページに読み込む
+            page.set_content(html_content)
 
-                # ビューポートを SVG サイズに合わせる
-                await page.set_viewport_size(
-                    {"width": scaled_width, "height": scaled_height}
-                )
+            # SVG の描画完了を待機する
+            page.wait_for_load_state("networkidle")
 
-                # SVG を埋め込んだ HTML を生成する
-                html_content = f"""
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <style>
-                        body {{
-                            margin: 0;
-                            padding: 0;
-                            width: {scaled_width}px;
-                            height: {scaled_height}px;
-                        }}
-                        svg {{
-                            width: 100%;
-                            height: 100%;
-                        }}
-                    </style>
-                </head>
-                <body>
-                    {svg_content}
-                </body>
-                </html>
-                """
+            # 背景透過のスクリーンショットとして PNG を取得する
+            page.screenshot(
+                path=output_path, full_page=True, omit_background=True
+            )
 
-                # HTML をページに読み込む
-                await page.set_content(html_content)
+            return True
 
-                # SVG の描画完了を待機する
-                await page.wait_for_load_state("networkidle")
-
-                # 背景透過のスクリーンショットとして PNG を取得する
-                await page.screenshot(
-                    path=output_path, full_page=True, omit_background=True
-                )
-
-                return True
-
-            finally:
-                await browser.close()
-
-    def _get_async_playwright(self) -> Any:
-        """Playwright の非同期 API を遅延インポートし、
-        モジュール不在時の例外を避ける。"""
-        if self._async_playwright is None:
-            try:
-                from playwright.async_api import async_playwright as playwright_loader
-            except ImportError as error:
-                raise ImportError(
-                    "Playwright is required for SVG to PNG conversion. "
-                    "Install it with: pip install playwright && "
-                    "playwright install chromium"
-                ) from error
-            self._async_playwright = playwright_loader
-        return self._async_playwright
+        finally:
+            context.close()
 
     def _extract_svg_dimensions(self, svg_content: str) -> tuple[int, int]:
         """SVG コンテンツから幅と高さを抽出する。
@@ -304,7 +322,7 @@ class SvgToPngConverter:
         return default
 
     def _run_playwright_conversion(self, svg_content: str, output_path: str) -> bool:
-        """Playwright 変換を実行し、非同期イベントループの状態を調停する。
+        """Playwright 変換を実行する。
 
         引数:
             svg_content: SVG マークアップを含む文字列
@@ -314,51 +332,7 @@ class SvgToPngConverter:
             変換が成功した場合は True、失敗時は False
         """
         try:
-            # 既存イベントループ上で動作しているかを確認する
-            try:
-                loop = asyncio.get_running_loop()
-                if loop and loop.is_running():
-                    # 現行ループ内であれば別スレッドに専用ループを立ち上げる
-                    import threading
-
-                    result_container = {}
-                    exception_container = {}
-
-                    def run_in_new_loop() -> None:
-                        try:
-                            # スレッド専用のイベントループを生成して処理する
-                            new_loop = asyncio.new_event_loop()
-                            asyncio.set_event_loop(new_loop)
-                            try:
-                                result = new_loop.run_until_complete(
-                                    self._convert_svg_with_playwright(
-                                        svg_content, output_path
-                                    )
-                                )
-                                result_container["success"] = result
-                            finally:
-                                new_loop.close()
-                        except Exception as e:
-                            exception_container["error"] = e
-
-                    thread = threading.Thread(target=run_in_new_loop)
-                    thread.start()
-                    thread.join()
-
-                    if "error" in exception_container:
-                        raise exception_container["error"]
-
-                    return result_container.get("success", False)
-                else:
-                    # イベントループ自体は存在するが未稼働の場合
-                    return asyncio.run(
-                        self._convert_svg_with_playwright(svg_content, output_path)
-                    )
-            except RuntimeError:
-                # イベントループが存在しないため asyncio.run を直接利用する
-                return asyncio.run(
-                    self._convert_svg_with_playwright(svg_content, output_path)
-                )
+            return self._convert_svg_with_playwright(svg_content, output_path)
         except Exception as e:
             if self._is_playwright_browser_missing_error(e):
                 raise SvgConfigError(
