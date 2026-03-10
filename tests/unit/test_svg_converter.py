@@ -761,6 +761,35 @@ class TestBrowserLifecycle:
         assert browser is mock_browser
         mock_playwright_instance.chromium.launch.assert_called_once_with(headless=True)
 
+    def test_ensure_browser_cleans_up_worker_on_launch_failure(self, svg_config):
+        """asyncio ループ内で起動失敗時にワーカースレッドが解放されることを確認する。"""
+        import asyncio
+
+        converter = SvgToPngConverter(svg_config)
+
+        mock_sync_playwright_callable = Mock()
+        mock_sync_playwright_callable.return_value.start.side_effect = RuntimeError(
+            "launch failed"
+        )
+
+        async def run_in_async() -> None:
+            with (
+                patch.object(
+                    SvgToPngConverter,
+                    "_import_sync_playwright",
+                    return_value=mock_sync_playwright_callable,
+                ),
+                pytest.raises(RuntimeError, match="launch failed"),
+            ):
+                converter._ensure_browser()
+
+        asyncio.run(run_in_async())
+
+        # ワーカーが解放されていることを確認（スレッドリークなし）
+        assert converter._worker is None
+        assert converter._browser is None
+        assert converter._playwright is None
+
 
 class TestPluginShutdownIntegration:
     """プラグインの on_post_build で shutdown が呼ばれることをテストするクラス。"""

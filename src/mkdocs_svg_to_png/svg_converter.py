@@ -236,14 +236,19 @@ class SvgToPngConverter:
 
         if self._is_inside_asyncio_loop():
             # asyncio ループ内: 専用ワーカースレッドで Playwright を所有する
-            self._worker = _PlaywrightWorkerThread()
+            worker = _PlaywrightWorkerThread()
 
             def launch() -> tuple[Any, Any]:
                 pw = sync_playwright_fn().start()
                 browser = pw.chromium.launch(headless=True)
                 return pw, browser
 
-            self._playwright, self._browser = self._worker.submit(launch)
+            try:
+                self._playwright, self._browser = worker.submit(launch)
+            except Exception:
+                worker.stop()
+                raise
+            self._worker = worker
         else:
             # 通常: メインスレッドで直接起動
             self._playwright = sync_playwright_fn().start()
