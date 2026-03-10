@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import queue
 import re
 import threading
 from pathlib import Path
@@ -17,6 +18,51 @@ except ImportError:
 from .exceptions import SvgConfigError, SvgConversionError, SvgFileError
 from .logging_config import get_logger
 from .utils import ensure_directory
+
+
+class _PlaywrightWorkerThread:
+    """Playwright 操作を専用スレッドで実行するワーカー。
+
+    Playwright sync API はスレッドに紐づくため、asyncio ループ内で使用する場合は
+    起動からブラウザ操作・終了まで全操作を同一の専用スレッドで実行する必要がある。
+    """
+
+    def __init__(self) -> None:
+        self._task_queue: queue.Queue[Callable[[], Any] | None] = queue.Queue()
+        self._thread = threading.Thread(target=self._run, daemon=True)
+        self._thread.start()
+
+    def submit(self, fn: Callable[[], Any]) -> Any:
+        """fn を専用スレッドで実行し結果を返す。エラーは再送出する。"""
+        result_event = threading.Event()
+        container: dict[str, Any] = {}
+
+        def wrapper() -> None:
+            try:
+                container["result"] = fn()
+            except Exception as e:
+                container["error"] = e
+            result_event.set()
+
+        self._task_queue.put(wrapper)
+        result_event.wait()
+
+        if "error" in container:
+            raise container["error"]
+        return container.get("result")
+
+    def stop(self) -> None:
+        """ワーカースレッドを停止する。"""
+        self._task_queue.put(None)
+        self._thread.join(timeout=10)
+
+    def _run(self) -> None:
+        """ワーカースレッドのメインループ。"""
+        while True:
+            task = self._task_queue.get()
+            if task is None:
+                break
+            task()
 
 
 class SvgToPngConverter:
@@ -41,6 +87,7 @@ class SvgToPngConverter:
         self.logger = get_logger(__name__)
         self._playwright: Any | None = None
         self._browser: Any | None = None
+        self._worker: _PlaywrightWorkerThread | None = None
         self._conversion_runner: Callable[[str, str], bool] = (
             runner or self._run_playwright_conversion
         )
@@ -164,44 +211,20 @@ class SvgToPngConverter:
             ) from error
         return sync_playwright
 
-    def _start_playwright_and_browser(self) -> None:
-        """Playwright を起動しブラウザインスタンスを作成する。
-
-        sync API は asyncio ループ内で直接呼べないため、
-        実行中ループを検出した場合は別スレッドで起動する。
-        """
-        sync_playwright = self._import_sync_playwright()
-
-        def _launch() -> None:
-            self._playwright = sync_playwright().start()
-            self._browser = self._playwright.chromium.launch(headless=True)
-
+    @staticmethod
+    def _is_inside_asyncio_loop() -> bool:
+        """現在 asyncio イベントループ内で実行中かどうかを判定する。"""
         try:
             loop = asyncio.get_running_loop()
+            return loop is not None and loop.is_running()
         except RuntimeError:
-            loop = None
-
-        if loop is not None and loop.is_running():
-            # asyncio ループ内 → 別スレッドで起動
-            exception_container: dict[str, Exception] = {}
-
-            def _run_in_thread() -> None:
-                try:
-                    _launch()
-                except Exception as e:
-                    exception_container["error"] = e
-
-            thread = threading.Thread(target=_run_in_thread)
-            thread.start()
-            thread.join()
-
-            if "error" in exception_container:
-                raise exception_container["error"]
-        else:
-            _launch()
+            return False
 
     def _ensure_browser(self) -> Any:
         """ブラウザインスタンスを遅延起動し、以降は再利用する。
+
+        asyncio ループ内の場合は専用ワーカースレッドを起動し、
+        Playwright の全操作をそのスレッド上で実行する。
 
         戻り値:
             起動済みの Playwright Browser オブジェクト
@@ -209,24 +232,50 @@ class SvgToPngConverter:
         if self._browser is not None:
             return self._browser
 
-        self._start_playwright_and_browser()
+        sync_playwright_fn = self._import_sync_playwright()
+
+        if self._is_inside_asyncio_loop():
+            # asyncio ループ内: 専用ワーカースレッドで Playwright を所有する
+            self._worker = _PlaywrightWorkerThread()
+
+            def launch() -> tuple[Any, Any]:
+                pw = sync_playwright_fn().start()
+                browser = pw.chromium.launch(headless=True)
+                return pw, browser
+
+            self._playwright, self._browser = self._worker.submit(launch)
+        else:
+            # 通常: メインスレッドで直接起動
+            self._playwright = sync_playwright_fn().start()
+            self._browser = self._playwright.chromium.launch(headless=True)
+
         self.logger.debug("Playwright ブラウザを起動しました")
         return self._browser
 
     def shutdown(self) -> None:
         """ブラウザと Playwright インスタンスを終了する。"""
         if self._browser is not None:
-            self._browser.close()
+            if self._worker:
+                self._worker.submit(lambda: self._browser.close())  # type: ignore[union-attr]
+            else:
+                self._browser.close()
             self._browser = None
         if self._playwright is not None:
-            self._playwright.stop()
+            if self._worker:
+                self._worker.submit(lambda: self._playwright.stop())  # type: ignore[union-attr]
+            else:
+                self._playwright.stop()
             self._playwright = None
             self.logger.debug("Playwright ブラウザを終了しました")
+        if self._worker is not None:
+            self._worker.stop()
+            self._worker = None
 
     def _convert_svg_with_playwright(self, svg_content: str, output_path: str) -> bool:
         """Playwright を利用して SVG を PNG に描画する。
 
         ブラウザインスタンスを再利用し、ページの作成・破棄のみで変換する。
+        ワーカースレッドが存在する場合は、全操作をそのスレッド上で実行する。
 
         引数:
             svg_content: SVG マークアップを含む文字列
@@ -236,6 +285,16 @@ class SvgToPngConverter:
             変換が成功した場合は True、それ以外は False
         """
         browser = self._ensure_browser()
+
+        if self._worker:
+            result: bool = self._worker.submit(
+                lambda: self._do_convert(browser, svg_content, output_path)
+            )
+            return result
+        return self._do_convert(browser, svg_content, output_path)
+
+    def _do_convert(self, browser: Any, svg_content: str, output_path: str) -> bool:
+        """実際の変換処理を行う。ブラウザ操作はこのメソッド内で完結する。"""
         context = browser.new_context(
             device_scale_factor=self.config.get("device_scale_factor", 1.0)
         )

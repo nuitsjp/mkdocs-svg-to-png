@@ -121,9 +121,9 @@ class TestSvgConfigManager:
             unused_settings_removed = False
 
         # After removal, unused settings should not be required anymore
-        assert unused_settings_removed, (
-            "Config validation should pass without unused settings"
-        )
+        assert (
+            unused_settings_removed
+        ), "Config validation should pass without unused settings"
 
     def test_unused_settings_removed_from_schema(self):
         """Test that unused settings are completely removed from config schema."""
@@ -134,9 +134,9 @@ class TestSvgConfigManager:
         removed_settings = ["dpi", "quality", "background_color", "temp_dir"]
 
         for setting in removed_settings:
-            assert setting not in config_keys, (
-                f"Unused setting '{setting}' should be removed from config schema"
-            )
+            assert (
+                setting not in config_keys
+            ), f"Unused setting '{setting}' should be removed from config schema"
 
     def test_enabled_setting_removed_from_schema(self):
         """Test that 'enabled' setting is removed from config schema."""
@@ -144,14 +144,14 @@ class TestSvgConfigManager:
         config_keys = {key for key, _ in config_scheme}
 
         # 'enabled' should be removed as it's redundant with 'enabled_if_env'
-        assert "enabled" not in config_keys, (
-            "'enabled' setting should be removed from config schema as it's redundant"
-        )
+        assert (
+            "enabled" not in config_keys
+        ), "'enabled' setting should be removed from config schema as it's redundant"
 
         # 'enabled_if_env' should still be present
-        assert "enabled_if_env" in config_keys, (
-            "'enabled_if_env' setting should remain in config schema"
-        )
+        assert (
+            "enabled_if_env" in config_keys
+        ), "'enabled_if_env' setting should remain in config schema"
 
     def test_output_format_setting_removed_from_schema(self):
         """Test that 'output_format' setting is removed from config schema."""
@@ -159,9 +159,9 @@ class TestSvgConfigManager:
         config_keys = {key for key, _ in config_scheme}
 
         # 'output_format' should be removed since only PNG is supported
-        assert "output_format" not in config_keys, (
-            "'output_format' setting should be removed from config schema"
-        )
+        assert (
+            "output_format" not in config_keys
+        ), "'output_format' setting should be removed from config schema"
 
     def test_cache_enabled_setting_removed_from_schema(self):
         """Test that 'cache_enabled' setting is removed from config schema.
@@ -173,9 +173,9 @@ class TestSvgConfigManager:
         config_keys = {key for key, _ in config_scheme}
 
         # 'cache_enabled' should be removed as it's not implemented
-        assert "cache_enabled" not in config_keys, (
-            "'cache_enabled' setting should be removed from config schema"
-        )
+        assert (
+            "cache_enabled" not in config_keys
+        ), "'cache_enabled' setting should be removed from config schema"
 
     def test_cache_enabled_removed_from_type_definitions(self):
         """Test that 'cache_enabled' is removed from type definitions.
@@ -189,9 +189,9 @@ class TestSvgConfigManager:
         type_annotations = PluginConfigDict.__annotations__
 
         # 'cache_enabled' should be removed from type definitions
-        assert "cache_enabled" not in type_annotations, (
-            "'cache_enabled' should be removed from PluginConfigDict type definitions"
-        )
+        assert (
+            "cache_enabled" not in type_annotations
+        ), "'cache_enabled' should be removed from PluginConfigDict type definitions"
 
     def test_log_level_processing_logic(self):
         """Test the logic that processes log_level configuration.
@@ -964,9 +964,9 @@ class TestSvgConfigManager:
         plugin_keys = {key for key, _ in plugin_scheme}
         manager_keys = {key for key, _ in manager_scheme}
 
-        assert plugin_keys == manager_keys, (
-            "Plugin and ConfigManager should have same config keys"
-        )
+        assert (
+            plugin_keys == manager_keys
+        ), "Plugin and ConfigManager should have same config keys"
 
         # Verify default values match
         plugin_defaults = {}
@@ -980,9 +980,9 @@ class TestSvgConfigManager:
             if hasattr(option, "default"):
                 manager_defaults[key] = option.default
 
-        assert plugin_defaults == manager_defaults, (
-            "Default values should match between plugin and manager"
-        )
+        assert (
+            plugin_defaults == manager_defaults
+        ), "Default values should match between plugin and manager"
 
     def test_config_validation_error_messages(self):
         """Test that configuration validation provides meaningful error messages."""
