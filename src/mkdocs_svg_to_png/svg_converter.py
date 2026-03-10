@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import asyncio
 import re
+import threading
 from pathlib import Path
 from typing import Any, Callable
 
@@ -15,12 +17,6 @@ except ImportError:
 from .exceptions import SvgConfigError, SvgConversionError, SvgFileError
 from .logging_config import get_logger
 from .utils import ensure_directory
-
-# sync_playwright は遅延インポートするが、テストでのパッチポイントを提供する
-try:
-    from playwright.sync_api import sync_playwright
-except ImportError:
-    sync_playwright = None  # type: ignore[assignment]
 
 
 class SvgToPngConverter:
@@ -155,6 +151,55 @@ class SvgToPngConverter:
                 cairo_error=str(e),
             ) from e
 
+    @staticmethod
+    def _import_sync_playwright() -> Any:
+        """Playwright の sync API を遅延インポートする。"""
+        try:
+            from playwright.sync_api import sync_playwright
+        except ImportError as error:
+            raise ImportError(
+                "Playwright is required for SVG to PNG conversion. "
+                "Install it with: pip install playwright && "
+                "playwright install chromium"
+            ) from error
+        return sync_playwright
+
+    def _start_playwright_and_browser(self) -> None:
+        """Playwright を起動しブラウザインスタンスを作成する。
+
+        sync API は asyncio ループ内で直接呼べないため、
+        実行中ループを検出した場合は別スレッドで起動する。
+        """
+        sync_playwright = self._import_sync_playwright()
+
+        def _launch() -> None:
+            self._playwright = sync_playwright().start()
+            self._browser = self._playwright.chromium.launch(headless=True)
+
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = None
+
+        if loop is not None and loop.is_running():
+            # asyncio ループ内 → 別スレッドで起動
+            exception_container: dict[str, Exception] = {}
+
+            def _run_in_thread() -> None:
+                try:
+                    _launch()
+                except Exception as e:
+                    exception_container["error"] = e
+
+            thread = threading.Thread(target=_run_in_thread)
+            thread.start()
+            thread.join()
+
+            if "error" in exception_container:
+                raise exception_container["error"]
+        else:
+            _launch()
+
     def _ensure_browser(self) -> Any:
         """ブラウザインスタンスを遅延起動し、以降は再利用する。
 
@@ -164,15 +209,7 @@ class SvgToPngConverter:
         if self._browser is not None:
             return self._browser
 
-        if sync_playwright is None:
-            raise ImportError(
-                "Playwright is required for SVG to PNG conversion. "
-                "Install it with: pip install playwright && "
-                "playwright install chromium"
-            )
-
-        self._playwright = sync_playwright().start()
-        self._browser = self._playwright.chromium.launch(headless=True)
+        self._start_playwright_and_browser()
         self.logger.debug("Playwright ブラウザを起動しました")
         return self._browser
 
@@ -186,9 +223,7 @@ class SvgToPngConverter:
             self._playwright = None
             self.logger.debug("Playwright ブラウザを終了しました")
 
-    def _convert_svg_with_playwright(
-        self, svg_content: str, output_path: str
-    ) -> bool:
+    def _convert_svg_with_playwright(self, svg_content: str, output_path: str) -> bool:
         """Playwright を利用して SVG を PNG に描画する。
 
         ブラウザインスタンスを再利用し、ページの作成・破棄のみで変換する。
@@ -216,9 +251,7 @@ class SvgToPngConverter:
             scaled_height = int(height * scale)
 
             # ビューポートを SVG サイズに合わせる
-            page.set_viewport_size(
-                {"width": scaled_width, "height": scaled_height}
-            )
+            page.set_viewport_size({"width": scaled_width, "height": scaled_height})
 
             # SVG を埋め込んだ HTML を生成する
             html_content = f"""
@@ -251,9 +284,7 @@ class SvgToPngConverter:
             page.wait_for_load_state("networkidle")
 
             # 背景透過のスクリーンショットとして PNG を取得する
-            page.screenshot(
-                path=output_path, full_page=True, omit_background=True
-            )
+            page.screenshot(path=output_path, full_page=True, omit_background=True)
 
             return True
 

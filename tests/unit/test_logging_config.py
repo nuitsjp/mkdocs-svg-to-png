@@ -581,9 +581,9 @@ class TestIndividualConversionLogging:
             # 呼び出された引数を確認
             call_args = mock_info.call_args[0][0]  # 最初の位置引数（メッセージ）
 
-            assert (
-                "Converting SVG to PNG:" in call_args
-            ), f"期待するログメッセージが見つかりませんでした。実際: {call_args}"
-            assert (
-                ".png from examples/test.md" in call_args
-            ), f"ファイル名とソースファイルが含まれていません。実際: {call_args}"
+            assert "Converting SVG to PNG:" in call_args, (
+                f"期待するログメッセージが見つかりませんでした。実際: {call_args}"
+            )
+            assert ".png from examples/test.md" in call_args, (
+                f"ファイル名とソースファイルが含まれていません。実際: {call_args}"
+            )

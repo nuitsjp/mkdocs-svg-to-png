@@ -5,6 +5,7 @@ This module tests the SvgToPngConverter class using Playwright.
 
 from __future__ import annotations
 
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
@@ -120,7 +121,11 @@ class TestSvgToPngConverter:
         assert mock_playwright_conversion.called is False
 
     def test_import_svg_converter_without_playwright(self):
-        """SvgToPngConverter module should import even if Playwright is absent."""
+        """Playwright 未インストールでもモジュールインポートが成功することを確認する。
+
+        Playwright は _import_sync_playwright で遅延インポートされるため、
+        モジュールのインポート自体は常に成功する。
+        """
         import importlib
         import sys
 
@@ -494,11 +499,16 @@ class TestBrowserLifecycle:
         mock_playwright_instance = Mock()
         mock_playwright_instance.chromium.launch.return_value = mock_browser
 
-        mock_sync_playwright = Mock()
-        mock_sync_playwright.return_value.start.return_value = mock_playwright_instance
+        # sync_playwright() が context manager ではなく start() を持つオブジェクトを返す
+        mock_sync_playwright_callable = Mock()
+        mock_sync_playwright_callable.return_value.start.return_value = (
+            mock_playwright_instance
+        )
 
-        with patch(
-            "mkdocs_svg_to_png.svg_converter.sync_playwright", mock_sync_playwright
+        with patch.object(
+            SvgToPngConverter,
+            "_import_sync_playwright",
+            return_value=mock_sync_playwright_callable,
         ):
             browser = converter._ensure_browser()
 
@@ -515,14 +525,12 @@ class TestBrowserLifecycle:
         converter._browser = mock_browser
         converter._playwright = Mock()
 
-        # sync_playwright が呼ばれないことを確認
-        with patch(
-            "mkdocs_svg_to_png.svg_converter.sync_playwright"
-        ) as mock_sync:
+        # _import_sync_playwright が呼ばれないことを確認
+        with patch.object(SvgToPngConverter, "_import_sync_playwright") as mock_import:
             browser = converter._ensure_browser()
 
         assert browser is mock_browser
-        mock_sync.assert_not_called()
+        mock_import.assert_not_called()
 
     def test_shutdown_closes_browser_and_playwright(self, svg_config):
         """shutdown がブラウザと Playwright を正しく終了することを確認する。"""
@@ -598,13 +606,17 @@ class TestBrowserLifecycle:
 
         mock_playwright_instance = Mock()
         mock_playwright_instance.chromium.launch.return_value = mock_browser
-        mock_sync_playwright = Mock()
-        mock_sync_playwright.return_value.start.return_value = mock_playwright_instance
+        mock_sync_playwright_callable = Mock()
+        mock_sync_playwright_callable.return_value.start.return_value = (
+            mock_playwright_instance
+        )
 
         svg_content = "<svg width='100' height='100'><rect/></svg>"
 
-        with patch(
-            "mkdocs_svg_to_png.svg_converter.sync_playwright", mock_sync_playwright
+        with patch.object(
+            SvgToPngConverter,
+            "_import_sync_playwright",
+            return_value=mock_sync_playwright_callable,
         ):
             converter._convert_svg_with_playwright(svg_content, "/tmp/test1.png")
             converter._convert_svg_with_playwright(svg_content, "/tmp/test2.png")
@@ -707,10 +719,47 @@ class TestBrowserLifecycle:
         converter = SvgToPngConverter(svg_config)
 
         with (
-            patch("mkdocs_svg_to_png.svg_converter.sync_playwright", None),
+            patch.object(
+                SvgToPngConverter,
+                "_import_sync_playwright",
+                side_effect=ImportError(
+                    "Playwright is required for SVG to PNG conversion."
+                ),
+            ),
             pytest.raises(ImportError, match="Playwright is required"),
         ):
             converter._ensure_browser()
+
+    def test_ensure_browser_works_inside_asyncio_loop(self, svg_config):
+        """asyncio ループ内でもブラウザが起動できることを確認する。
+
+        Playwright sync API は asyncio ループ内で直接呼べないため、
+        別スレッドで起動する回帰防止テスト。
+        """
+        import asyncio
+
+        converter = SvgToPngConverter(svg_config)
+
+        mock_browser = Mock()
+        mock_playwright_instance = Mock()
+        mock_playwright_instance.chromium.launch.return_value = mock_browser
+        mock_sync_playwright_callable = Mock()
+        mock_sync_playwright_callable.return_value.start.return_value = (
+            mock_playwright_instance
+        )
+
+        async def run_in_async() -> Any:
+            with patch.object(
+                SvgToPngConverter,
+                "_import_sync_playwright",
+                return_value=mock_sync_playwright_callable,
+            ):
+                return converter._ensure_browser()
+
+        browser = asyncio.run(run_in_async())
+
+        assert browser is mock_browser
+        mock_playwright_instance.chromium.launch.assert_called_once_with(headless=True)
 
 
 class TestPluginShutdownIntegration:
