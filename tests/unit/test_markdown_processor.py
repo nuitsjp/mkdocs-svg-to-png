@@ -357,6 +357,25 @@ Some text.
             == "/home/ubuntu/mkdocs-svg-to-png/docs/images/diagram.svg"
         )
 
+    def test_resolve_svg_file_paths_from_subdir_page_relative_to_page_dir(
+        self, svg_config
+    ):
+        """サブディレクトリページの images/ 相対パスはページディレクトリ基準（#21）。"""
+        processor = MarkdownProcessor(svg_config)
+
+        blocks = [SvgBlock(file_path="images/diagram.drawio.svg")]
+
+        page_file = "subdir/page.md"
+        docs_dir = "/home/ubuntu/mkdocs-svg-to-png/docs"
+
+        resolved_paths = processor.resolve_svg_file_paths_from_page(
+            blocks, page_file, docs_dir
+        )
+
+        assert resolved_paths[0] == (
+            "/home/ubuntu/mkdocs-svg-to-png/docs/subdir/images/diagram.drawio.svg"
+        )
+
     def test_resolve_svg_file_paths_from_subfolder(self, svg_config):
         """サブフォルダ内のファイルからの相対パス解決テスト"""
         processor = MarkdownProcessor(svg_config)
