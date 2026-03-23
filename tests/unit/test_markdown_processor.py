@@ -360,7 +360,7 @@ Some text.
     def test_resolve_svg_file_paths_from_subdir_page_relative_to_page_dir(
         self, svg_config
     ):
-        """サブディレクトリのページからの images/ 相対パスはページディレクトリ基準（Issue #21）"""
+        """サブディレクトリページの images/ 相対パスはページディレクトリ基準（#21）。"""
         processor = MarkdownProcessor(svg_config)
 
         blocks = [SvgBlock(file_path="images/diagram.drawio.svg")]
