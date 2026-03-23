@@ -1,6 +1,7 @@
+import posixpath
 import re
 from bisect import bisect_right
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 from .exceptions import SvgParsingError
@@ -251,8 +252,10 @@ class MarkdownProcessor:
         resolved_paths: list[str] = []
 
         # docs_dir はテストで POSIX 形式('/home/ubuntu/...') を前提としているため、
-        # OS 依存の resolve() を使わず文字列結合で POSIX 形式を維持する。
+        # ファイルシステムに触れない PurePosixPath と posixpath.normpath で解決する。
         docs_dir_posix = docs_dir.replace("\\", "/").rstrip("/")
+        page_parent = PurePosixPath(page_file.replace("\\", "/")).parent
+        page_base = PurePosixPath(docs_dir_posix) / page_parent
 
         for block in svg_blocks:
             if not block.file_path:  # インラインSVGの場合は空文字
@@ -271,12 +274,9 @@ class MarkdownProcessor:
                 resolved_paths.append(original)
                 continue
 
-            # '../' を可能な限り剥がす（テストはドキュメントルート基準を期待）
-            parts = original.split("/")
-            while parts and parts[0] == "..":
-                parts = parts[1:]
-
-            normalized_rel = "/".join(parts)
-            resolved_paths.append(f"{docs_dir_posix}/{normalized_rel}")
+            # ページファイルのディレクトリを基準に相対パスを解決する（../ 含む）
+            # PurePosixPath は .. を畳まないため、POSIX 文字列として normpath する
+            combined = (page_base / original).as_posix()
+            resolved_paths.append(posixpath.normpath(combined))
 
         return resolved_paths
